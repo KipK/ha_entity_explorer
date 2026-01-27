@@ -1,38 +1,36 @@
+/* HA Entity Explorer Styles */
+
 body {
     height: 100vh;
     overflow: hidden;
 }
 
+/* Main chart container */
 #main-chart {
     background-color: #1e1e1e;
-    /* Fond sombre proche de HA */
     border-radius: 4px;
-    height: 500px;
-    /* Hauteur fixe plus proche d'une carte HA */
+    min-height: 400px;
     width: 100%;
-    margin: auto;
-    /* Centrage vertical si le conteneur l'autorise */
 }
 
+/* Sidebar */
 #sidebar {
     border-left: 1px solid #444;
     height: 100%;
     overflow-y: auto;
     display: block;
-    /* Ensure it behaves as a block for scrolling */
 }
 
 /* Ensure flex parents don't break scroll */
 .row.flex-grow-1 {
     min-height: 0;
-    /* Important for nested flex scroll */
 }
 
 .text-xsmall {
     font-size: 0.75rem;
 }
 
-/* Scrollbar noir discret */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -49,11 +47,153 @@ body {
     background: #777;
 }
 
+/* Clickable table rows */
 .clickable-row {
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
 .clickable-row:hover {
-    background-color: #444 !important; /* Slightly lighter on hover */
+    background-color: #444 !important;
+}
+
+/* Dict/folder rows in attributes */
+.dict-row {
+    background-color: rgba(100, 100, 255, 0.1) !important;
+}
+
+.dict-row:hover {
+    background-color: rgba(100, 100, 255, 0.25) !important;
+}
+
+.dict-row td:first-child {
+    font-weight: 500;
+}
+
+/* Entity search dropdown */
+.entity-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    z-index: 1050;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.entity-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #3d3d3d;
+    transition: background-color 0.15s;
+}
+
+.entity-item:last-child {
+    border-bottom: none;
+}
+
+.entity-item:hover,
+.entity-item.active {
+    background-color: #3d3d3d;
+}
+
+.entity-item .entity-id {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.entity-item .entity-name {
+    font-weight: 500;
+}
+
+.entity-item .entity-state {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.entity-item .entity-domain {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    background-color: #444;
+    border-radius: 3px;
+    margin-right: 8px;
+}
+
+/* Domain colors */
+.entity-domain.climate { background-color: #dc3545; }
+.entity-domain.sensor { background-color: #198754; }
+.entity-domain.switch { background-color: #0dcaf0; }
+.entity-domain.light { background-color: #ffc107; color: #000; }
+.entity-domain.binary_sensor { background-color: #6f42c1; }
+.entity-domain.input_boolean { background-color: #20c997; }
+.entity-domain.input_number { background-color: #fd7e14; }
+
+/* Loading indicator */
+.entity-dropdown .loading {
+    padding: 20px;
+    text-align: center;
+    color: #888;
+}
+
+/* No results */
+.entity-dropdown .no-results {
+    padding: 20px;
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
+
+/* Date range display */
+#date-range-display {
+    font-family: monospace;
+}
+
+/* Chart placeholder */
+#chart-placeholder {
+    background-color: #1e1e1e;
+    border-radius: 4px;
+}
+
+/* Flatpickr customizations for dark mode */
+.flatpickr-calendar.dark {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+.flatpickr-calendar.dark .flatpickr-day:hover {
+    background: #444;
+}
+
+/* Back button in sidebar */
+.btn-back {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+}
+
+/* Attribute path breadcrumb */
+.attribute-path {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.attribute-path .path-item {
+    cursor: pointer;
+}
+
+.attribute-path .path-item:hover {
+    text-decoration: underline;
+}
+
+/* Quick range buttons */
+.quick-range.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
 }

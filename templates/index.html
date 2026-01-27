@@ -5,52 +5,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HA Entity Explorer</title>
+
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Flatpickr for date picking -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <!-- Custom styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- ECharts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- Axios -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Flatpickr -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 
 <body class="bg-dark text-light">
     <div class="container-fluid vh-100 d-flex flex-column">
+        <!-- Navbar -->
         <nav class="navbar navbar-dark bg-secondary mb-3">
             <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1">HA Entity Explorer</span>
-                <select id="file-selector" class="form-select w-auto">
-                    <option selected>Chargement...</option>
-                </select>
+                <span class="navbar-brand mb-0 h1">
+                    <i class="bi bi-house-door"></i> HA Entity Explorer
+                </span>
+
+                <!-- Entity Search -->
+                <div class="d-flex align-items-center flex-grow-1 mx-4">
+                    <div class="position-relative flex-grow-1" style="max-width: 500px;">
+                        <input type="text" id="entity-search" class="form-control bg-dark text-light border-secondary"
+                            placeholder="Search for an entity..." autocomplete="off">
+                        <div id="entity-dropdown" class="entity-dropdown d-none">
+                            <!-- Entity suggestions will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected entity badge -->
+                <div id="selected-entity-container" class="d-none me-3">
+                    <span class="badge bg-primary fs-6" id="selected-entity-badge">
+                        <span id="selected-entity-name"></span>
+                        <button type="button" class="btn-close btn-close-white ms-2" onclick="clearSelectedEntity()"
+                            aria-label="Close"></button>
+                    </span>
+                </div>
             </div>
         </nav>
 
         <div class="row flex-grow-1 m-0 overflow-hidden">
-            <!-- Zone Graphique -->
-            <div class="col-md-9 d-flex flex-column h-100 justify-content-center p-4">
-                <div id="main-chart"></div>
+            <!-- Chart Area -->
+            <div class="col-md-9 d-flex flex-column h-100 p-4">
+                <!-- Date Range Controls -->
+                <div class="d-flex align-items-center mb-3" id="date-controls">
+                    <button id="date-range-btn" class="btn btn-outline-light btn-sm" disabled>
+                        <i class="bi bi-calendar-range"></i> Period
+                    </button>
+                    <span id="date-range-display" class="ms-3 text-muted small">
+                        <!-- Will show: "from 22/01/2025 15:52 to 27/01/2025 16:05" -->
+                    </span>
+                    <button id="refresh-btn" class="btn btn-outline-success btn-sm ms-auto d-none">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+
+                <!-- Main Chart -->
+                <div id="main-chart" class="flex-grow-1">
+                    <!-- Empty state -->
+                    <div id="chart-placeholder" class="d-flex align-items-center justify-content-center h-100">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-graph-up" style="font-size: 4rem;"></i>
+                            <p class="mt-3">Select an entity to view its history</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Panel Latéral -->
+            <!-- Sidebar -->
             <div class="col-md-3 bg-secondary p-3 overflow-auto h-100" id="sidebar">
-                <h5>Détails à <span id="cursor-time">--:--</span></h5>
+                <h5>Details at <span id="cursor-time">--:--</span></h5>
                 <hr>
                 <div id="details-content">
-                    <p class="text-muted">Survolez le graphique pour voir les détails.</p>
+                    <p class="text-muted">Click on the chart to see details.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Historique -->
+    <!-- History Modal -->
     <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content bg-dark text-light border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title" id="historyModalLabel">Historique</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="historyModalLabel">History</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="height: 60vh; overflow-y: auto;">
                     <div id="history-loading" class="text-center py-5 d-none">
                         <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Chargement...</span>
+                            <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
                     <div id="history-chart" style="width: 100%; height: 100%;"></div>
@@ -60,7 +116,54 @@
         </div>
     </div>
 
+    <!-- Date Range Picker Modal -->
+    <div class="modal fade" id="dateRangeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Select Date Range</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">From</label>
+                            <input type="text" id="date-start" class="form-control bg-dark text-light border-secondary">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">To</label>
+                            <input type="text" id="date-end" class="form-control bg-dark text-light border-secondary">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Quick Select</label>
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="1">1 day</button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="3">3
+                                days</button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="7">7
+                                days</button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="14">14
+                                days</button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="30">30
+                                days</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="apply-date-range">
+                        <i class="bi bi-check"></i> Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Main JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 

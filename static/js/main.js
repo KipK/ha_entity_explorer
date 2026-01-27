@@ -1,185 +1,355 @@
+/**
+ * HA Entity Explorer - Main JavaScript
+ * Handles entity search, chart rendering, and date range selection.
+ */
 
-// Références DOM
+// =============================================================================
+// Global State
+// =============================================================================
+
+let entities = [];              // All available entities
+let currentEntityId = null;     // Currently selected entity
+let currentHistoryData = null;  // Current history data for the chart
+let dateRange = {
+    start: null,
+    end: null
+};
+let appConfig = null;           // App configuration from server
+
+// DOM References
+const entitySearch = document.getElementById('entity-search');
+const entityDropdown = document.getElementById('entity-dropdown');
+const selectedEntityContainer = document.getElementById('selected-entity-container');
+const selectedEntityName = document.getElementById('selected-entity-name');
 const chartDom = document.getElementById('main-chart');
-const fileSelector = document.getElementById('file-selector');
+const chartPlaceholder = document.getElementById('chart-placeholder');
+const dateRangeBtn = document.getElementById('date-range-btn');
+const dateRangeDisplay = document.getElementById('date-range-display');
+const refreshBtn = document.getElementById('refresh-btn');
 const detailsContent = document.getElementById('details-content');
 const cursorTimeDisplay = document.getElementById('cursor-time');
 
-// Initialisation ECharts
-const myChart = echarts.init(chartDom, 'dark');
-let currentFilename = null;
+// Modals
+const dateRangeModal = new bootstrap.Modal(document.getElementById('dateRangeModal'));
+const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+const historyModalEl = document.getElementById('historyModal');
+const historyTitle = document.getElementById('historyModalLabel');
+const historyChartDom = document.getElementById('history-chart');
+const historyListDom = document.getElementById('history-list');
+const historyLoading = document.getElementById('history-loading');
 
-// Gestion du redimensionnement
-window.addEventListener('resize', function () {
-    myChart.resize();
-});
+// Date pickers
+let startPicker = null;
+let endPicker = null;
 
-// Chargement de la liste des fichiers
-async function loadFiles() {
+// ECharts instances
+let myChart = null;
+let historyChart = null;
+
+// =============================================================================
+// Initialization
+// =============================================================================
+
+async function init() {
+    // Load app configuration
+    await loadConfig();
+
+    // Initialize date pickers
+    initDatePickers();
+
+    // Set default date range
+    setDefaultDateRange();
+
+    // Load entities
+    await loadEntities();
+
+    // Setup event listeners
+    setupEventListeners();
+
+    // Initialize main chart
+    initMainChart();
+}
+
+async function loadConfig() {
     try {
-        const response = await axios.get('/api/files');
-        const files = response.data;
-
-        fileSelector.innerHTML = '<option selected disabled>Choisir un fichier...</option>';
-        files.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file;
-            option.text = file;
-            // Auto-select history.json if present
-            if (file === 'history.json') option.selected = true;
-            fileSelector.appendChild(option);
-        });
-
-        // Chargement automatique si history.json est présent
-        if (files.includes('history.json')) {
-            loadChartData('history.json');
-        }
-
-        fileSelector.addEventListener('change', (e) => {
-            loadChartData(e.target.value);
-        });
+        const response = await axios.get('/api/config');
+        appConfig = response.data;
+        console.log('Config loaded:', appConfig);
     } catch (error) {
-        console.error("Erreur chargement fichiers:", error);
+        console.error('Failed to load config:', error);
+        appConfig = { language: 'en', defaultHistoryDays: 4 };
     }
 }
 
-// Chargement des données du graphique
-async function loadChartData(filename) {
-    if (!filename) return;
-    currentFilename = filename;
+function setDefaultDateRange() {
+    const days = appConfig?.defaultHistoryDays || 4;
+    dateRange.end = new Date();
+    dateRange.start = new Date();
+    dateRange.start.setDate(dateRange.start.getDate() - days);
+}
 
-    myChart.showLoading();
+function initDatePickers() {
+    const commonOptions = {
+        enableTime: true,
+        dateFormat: 'Y-m-d H:i',
+        time_24hr: true,
+        theme: 'dark'
+    };
+
+    startPicker = flatpickr('#date-start', {
+        ...commonOptions,
+        defaultDate: dateRange.start
+    });
+
+    endPicker = flatpickr('#date-end', {
+        ...commonOptions,
+        defaultDate: dateRange.end
+    });
+}
+
+function initMainChart() {
+    myChart = echarts.init(chartDom, 'dark');
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+        if (myChart) myChart.resize();
+    });
+}
+
+// =============================================================================
+// Entity Search & Selection
+// =============================================================================
+
+async function loadEntities() {
     try {
-        const response = await axios.get(`/api/chart-data/${filename}`);
-        const data = response.data;
+        entityDropdown.innerHTML = '<div class="loading">Loading entities...</div>';
 
-        renderChart(data);
+        const response = await axios.get('/api/entities');
+        entities = response.data;
+
+        console.log(`Loaded ${entities.length} entities`);
+        entityDropdown.classList.add('d-none');
+
     } catch (error) {
-        console.error("Erreur chargement données:", error);
-        alert("Erreur lors du chargement des données: " + error.message);
+        console.error('Failed to load entities:', error);
+        entityDropdown.innerHTML = '<div class="no-results">Failed to load entities</div>';
+    }
+}
+
+function filterEntities(query) {
+    if (!query || query.length < 2) {
+        return [];
+    }
+
+    const lowerQuery = query.toLowerCase();
+
+    return entities.filter(e =>
+        e.friendly_name.toLowerCase().includes(lowerQuery) ||
+        e.entity_id.toLowerCase().includes(lowerQuery)
+    ).slice(0, 20); // Limit to 20 results
+}
+
+function renderEntityDropdown(filteredEntities) {
+    if (filteredEntities.length === 0) {
+        entityDropdown.innerHTML = '<div class="no-results">No entities found</div>';
+        return;
+    }
+
+    entityDropdown.innerHTML = filteredEntities.map(entity => `
+        <div class="entity-item" data-entity-id="${entity.entity_id}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="entity-domain ${entity.domain}">${entity.domain}</span>
+                    <span class="entity-name">${escapeHtml(entity.friendly_name)}</span>
+                </div>
+                <span class="entity-state">${escapeHtml(entity.state)}</span>
+            </div>
+            <div class="entity-id">${entity.entity_id}</div>
+        </div>
+    `).join('');
+
+    // Add click handlers
+    entityDropdown.querySelectorAll('.entity-item').forEach(item => {
+        item.addEventListener('click', () => {
+            selectEntity(item.dataset.entityId);
+        });
+    });
+}
+
+function selectEntity(entityId) {
+    const entity = entities.find(e => e.entity_id === entityId);
+    if (!entity) return;
+
+    currentEntityId = entityId;
+
+    // Update UI
+    entitySearch.value = '';
+    entityDropdown.classList.add('d-none');
+    selectedEntityName.textContent = entity.friendly_name;
+    selectedEntityContainer.classList.remove('d-none');
+    dateRangeBtn.disabled = false;
+    refreshBtn.classList.remove('d-none');
+
+    // Load history
+    loadEntityHistory();
+}
+
+function clearSelectedEntity() {
+    currentEntityId = null;
+    currentHistoryData = null;
+
+    selectedEntityContainer.classList.add('d-none');
+    dateRangeBtn.disabled = true;
+    refreshBtn.classList.add('d-none');
+    dateRangeDisplay.textContent = '';
+
+    // Clear chart
+    if (myChart) {
+        myChart.clear();
+    }
+    chartPlaceholder.classList.remove('d-none');
+
+    // Clear details
+    detailsContent.innerHTML = '<p class="text-muted">Click on the chart to see details.</p>';
+    cursorTimeDisplay.textContent = '--:--';
+}
+
+// =============================================================================
+// History Loading & Chart Rendering
+// =============================================================================
+
+async function loadEntityHistory() {
+    if (!currentEntityId) return;
+
+    // Show loading
+    chartPlaceholder.classList.add('d-none');
+    myChart.showLoading();
+
+    try {
+        const params = new URLSearchParams({
+            start: dateRange.start.toISOString(),
+            end: dateRange.end.toISOString()
+        });
+
+        const response = await axios.get(`/api/history/${currentEntityId}?${params}`);
+        currentHistoryData = response.data;
+
+        // Update date display
+        updateDateRangeDisplay();
+
+        // Render chart based on entity type
+        if (currentHistoryData.type === 'climate') {
+            renderClimateChart(currentHistoryData);
+        } else if (currentHistoryData.type === 'numeric') {
+            renderNumericChart(currentHistoryData);
+        } else {
+            renderTextChart(currentHistoryData);
+        }
+
+    } catch (error) {
+        console.error('Failed to load history:', error);
+        alert('Failed to load entity history: ' + (error.response?.data?.error || error.message));
     } finally {
         myChart.hideLoading();
     }
 }
 
-// Rendu du graphique
-function renderChart(data) {
-    // Préparation des données pour la série de chauffage (Area sous la courbe de temp)
+function updateDateRangeDisplay() {
+    const formatDate = (d) => {
+        return d.toLocaleString(appConfig?.language === 'fr' ? 'fr-FR' : 'en-US', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    dateRangeDisplay.textContent = `from ${formatDate(dateRange.start)} to ${formatDate(dateRange.end)}`;
+}
+
+function renderClimateChart(data) {
+    // Prepare heating area data
     const heatingData = data.timestamps.map((ts, index) => {
         const isHeating = data.is_heating[index];
         const currentTemp = data.current_temperature[index];
 
-        // Si chauffe: on prend la température actuelle (ou 0 si inconnue)
-        // Si pas chauffe: 0
         if (isHeating === 1 && currentTemp != null) {
             return currentTemp;
         }
-        return null; // Allows auto-scale to ignore 'off' values (don't force to 0)
+        return null;
     });
 
     const option = {
-        animation: false, // Disable animation for instant updates
-        backgroundColor: '#1e1e1e', // Match CSS
+        animation: false,
+        backgroundColor: '#1e1e1e',
         tooltip: {
             trigger: 'axis',
-            axisPointer: {
-                type: 'cross'
-            }
+            axisPointer: { type: 'cross' }
         },
         legend: {
-            data: ['Intérieure', 'Consigne', 'Extérieure', 'Chauffe'],
+            data: ['Interior', 'Setpoint', 'Exterior', 'Heating'],
             top: 10,
-            selected: {
-                'Extérieure': false
-            }
+            selected: { 'Exterior': false }
         },
         grid: {
             left: '3%',
             right: '4%',
-            bottom: '15%', // Place pour le slider
+            bottom: '15%',
             containLabel: true
         },
         toolbox: {
             feature: {
-                dataZoom: {
-                    yAxisIndex: 'none'
-                },
+                dataZoom: { yAxisIndex: 'none' },
                 restore: {},
                 saveAsImage: {}
             }
         },
         dataZoom: [
-            {
-                type: 'inside',
-                start: 0,
-                end: 100,
-                filterMode: 'filter'
-            },
-            {
-                start: 0,
-                end: 100,
-                filterMode: 'filter'
-            }
+            { type: 'inside', start: 0, end: 100, filterMode: 'filter' },
+            { start: 0, end: 100, filterMode: 'filter' }
         ],
         xAxis: {
             type: 'category',
             boundaryGap: false,
             data: data.timestamps,
             axisLabel: {
-                formatter: function (value) {
-                    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }
+                formatter: (value) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }
         },
         yAxis: {
             type: 'value',
             scale: true,
-            splitLine: {
-                show: true,
-                lineStyle: { color: '#333' }
-            },
-            // Force tight scaling
-            min: function (value) {
-                return Math.floor(value.min * 10) / 10 - 0.1;
-            },
-            max: function (value) {
-                return Math.ceil(value.max * 10) / 10 + 0.1;
-            },
-            axisLabel: {
-                formatter: function (value) {
-                    return value.toFixed(1) + ' °C';
-                }
-            }
+            splitLine: { show: true, lineStyle: { color: '#333' } },
+            min: (value) => Math.floor(value.min * 10) / 10 - 0.1,
+            max: (value) => Math.ceil(value.max * 10) / 10 + 0.1,
+            axisLabel: { formatter: (value) => value.toFixed(1) + ' °C' }
         },
         series: [
             {
-                name: 'Chauffe',
+                name: 'Heating',
                 type: 'line',
-                step: 'start', // Important: le changement d'état s'applique dès le timestamp
+                step: 'start',
                 data: heatingData,
-                lineStyle: { width: 0 }, // Pas de ligne au sommet
-                areaStyle: {
-                    color: 'rgba(255, 140, 0, 0.4)', // Orange transparent
-                    origin: 'start'
-                },
+                lineStyle: { width: 0 },
+                areaStyle: { color: 'rgba(255, 140, 0, 0.4)', origin: 'start' },
                 symbol: 'none'
             },
             {
-                name: 'Consigne',
+                name: 'Setpoint',
                 type: 'line',
                 step: 'start',
                 data: data.temperature,
-                lineStyle: { color: '#FFD700', width: 2 }, // Gold
+                lineStyle: { color: '#FFD700', width: 2 },
                 symbol: 'none'
             },
             {
-                name: 'Intérieure',
+                name: 'Interior',
                 type: 'line',
                 step: 'start',
                 data: data.current_temperature,
-                lineStyle: { color: '#4169E1', width: 2 }, // RoyalBlue
+                lineStyle: { color: '#4169E1', width: 2 },
                 areaStyle: {
-                    // Petit dégradé bleu sous la courbe de temp, mais plus léger que la chauffe
                     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                         { offset: 0, color: 'rgba(65, 105, 225, 0.1)' },
                         { offset: 1, color: 'rgba(65, 105, 225, 0.0)' }
@@ -188,70 +358,283 @@ function renderChart(data) {
                 symbol: 'none'
             },
             {
-                name: 'Extérieure',
+                name: 'Exterior',
                 type: 'line',
                 step: 'start',
                 data: data.ext_current_temperature,
-                lineStyle: { color: '#A9A9A9', width: 1, type: 'dashed' }, // DarkGray
+                lineStyle: { color: '#A9A9A9', width: 1, type: 'dashed' },
                 symbol: 'none',
                 smooth: true
             }
         ]
     };
 
-    myChart.setOption(option, true); // true = not merge (reset)
+    myChart.setOption(option, true);
+    setupChartClickHandler(data);
+}
 
-    // Variable pour stocker le timestamp sous la souris
+function renderNumericChart(data) {
+    const option = {
+        animation: false,
+        backgroundColor: '#1e1e1e',
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            containLabel: true
+        },
+        toolbox: {
+            feature: {
+                dataZoom: { yAxisIndex: 'none' },
+                restore: {},
+                saveAsImage: {}
+            }
+        },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { start: 0, end: 100 }
+        ],
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: data.timestamps,
+            axisLabel: {
+                formatter: (value) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+        },
+        yAxis: {
+            type: 'value',
+            scale: true,
+            splitLine: { show: true, lineStyle: { color: '#333' } }
+        },
+        series: [{
+            name: 'Value',
+            type: 'line',
+            step: 'start',
+            data: data.states,
+            lineStyle: { color: '#00d2ff', width: 2 },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(0, 210, 255, 0.3)' },
+                    { offset: 1, color: 'rgba(0, 210, 255, 0)' }
+                ])
+            },
+            symbol: 'none'
+        }]
+    };
+
+    myChart.setOption(option, true);
+    setupChartClickHandler(data);
+}
+
+function renderTextChart(data) {
+    // For text/categorical data, show a timeline-like view
+    // Convert states to numeric categories for visualization
+    const uniqueStates = [...new Set(data.states.filter(s => s !== null))];
+    const stateToNum = {};
+    uniqueStates.forEach((s, i) => stateToNum[s] = i);
+
+    const numericStates = data.states.map(s => s !== null ? stateToNum[s] : null);
+
+    const option = {
+        animation: false,
+        backgroundColor: '#1e1e1e',
+        tooltip: {
+            trigger: 'axis',
+            formatter: (params) => {
+                const idx = params[0].dataIndex;
+                return `${new Date(data.timestamps[idx]).toLocaleString()}<br/>State: <b>${data.states[idx]}</b>`;
+            }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            containLabel: true
+        },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { start: 0, end: 100 }
+        ],
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: data.timestamps,
+            axisLabel: {
+                formatter: (value) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+        },
+        yAxis: {
+            type: 'category',
+            data: uniqueStates,
+            splitLine: { show: true, lineStyle: { color: '#333' } }
+        },
+        series: [{
+            type: 'line',
+            step: 'start',
+            data: numericStates,
+            lineStyle: { color: '#9370DB', width: 2 },
+            symbol: 'circle',
+            symbolSize: 6
+        }]
+    };
+
+    myChart.setOption(option, true);
+    setupChartClickHandler(data);
+}
+
+function setupChartClickHandler(data) {
     let currentHoverTimestamp = null;
 
-    // Tracker la position de la souris
-    myChart.on('updateAxisPointer', function (event) {
+    myChart.on('updateAxisPointer', (event) => {
         const xAxisInfo = event.axesInfo[0];
         if (xAxisInfo) {
             const index = xAxisInfo.value;
             currentHoverTimestamp = data.timestamps[index];
-            // On met à jour l'heure affichée pour aider à viser
             cursorTimeDisplay.textContent = new Date(currentHoverTimestamp).toLocaleTimeString();
         }
     });
 
-    // Déclencher l'affichage des détails au click
-    myChart.getZr().on('click', function () {
+    myChart.getZr().off('click');
+    myChart.getZr().on('click', () => {
         if (currentHoverTimestamp) {
             fetchDetails(currentHoverTimestamp);
         }
     });
 }
 
-// Debounce pour ne pas spammer l'API details (utile si on reclique vite)
+// =============================================================================
+// Details Panel
+// =============================================================================
+
 let detailsTimeout;
-function fetchDetails(timestamp) {
+let currentDetailsData = null;
+let attributePath = [];
+
+async function fetchDetails(timestamp) {
     clearTimeout(detailsTimeout);
     detailsTimeout = setTimeout(async () => {
-        if (!currentFilename) return;
+        if (!currentEntityId) return;
 
         try {
-            const response = await axios.get(`/api/details/${currentFilename}`, {
-                params: { timestamp: timestamp }
+            const response = await axios.get(`/api/details/${currentEntityId}`, {
+                params: { timestamp }
             });
-            displayDetails(response.data);
+            currentDetailsData = response.data;
+            attributePath = [];
+            displayAttributes(currentDetailsData, []);
         } catch (error) {
-            console.error(error);
+            console.error('Failed to fetch details:', error);
         }
     }, 50);
 }
 
-const historyModalEl = document.getElementById('historyModal');
-const historyModal = new bootstrap.Modal(historyModalEl);
-const historyTitle = document.getElementById('historyModalLabel');
-const historyChartDom = document.getElementById('history-chart');
-const historyListDom = document.getElementById('history-list');
-const historyLoading = document.getElementById('history-loading');
+function displayAttributes(data, path) {
+    if (!data || !data.attributes) {
+        detailsContent.innerHTML = '<p class="text-muted">No attributes available</p>';
+        return;
+    }
 
-let historyChart = null;
+    // Navigate to the correct level based on path
+    let current = data.attributes;
+    for (const key of path) {
+        if (current && typeof current === 'object' && key in current) {
+            current = current[key];
+        } else {
+            current = {};
+            break;
+        }
+    }
 
-// Clean up chart when modal closes
-historyModalEl.addEventListener('hidden.bs.modal', function () {
+    let html = '';
+
+    // Back button if not at root
+    if (path.length > 0) {
+        html += `
+            <button class="btn btn-sm btn-outline-secondary mb-2" onclick="navigateAttributesBack()">
+                <i class="bi bi-arrow-left"></i> Back
+            </button>
+            <div class="attribute-path mb-2">
+                <span class="path-item" onclick="navigateToPath([])">attributes</span>
+                ${path.map((p, i) => `<span> / </span><span class="path-item" onclick="navigateToPath(${JSON.stringify(path.slice(0, i + 1))})">${p}</span>`).join('')}
+            </div>
+        `;
+    }
+
+    if (typeof current !== 'object' || current === null) {
+        html += `<p class="text-muted">Value: ${current}</p>`;
+        detailsContent.innerHTML = html;
+        return;
+    }
+
+    html += '<table class="table table-sm table-dark table-striped text-xsmall">';
+
+    const entries = Object.entries(current);
+    for (const [key, value] of entries) {
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            // Dict - show as navigable folder
+            const keyCount = Object.keys(value).length;
+            html += `
+                <tr class="clickable-row dict-row" onclick="navigateAttributesInto('${key}')">
+                    <td><i class="bi bi-folder-fill text-warning me-2"></i>${key}</td>
+                    <td class="text-end text-muted">${keyCount} items →</td>
+                </tr>`;
+        } else {
+            // Simple value - clickable to show history
+            const displayVal = formatAttributeValue(value);
+            const fullPath = [...path, key].join('.');
+            html += `
+                <tr class="clickable-row" onclick="showAttributeHistory('${fullPath}')">
+                    <td>${key}</td>
+                    <td class="text-end">${displayVal}</td>
+                </tr>`;
+        }
+    }
+
+    html += '</table>';
+    detailsContent.innerHTML = html;
+}
+
+function formatAttributeValue(value) {
+    if (value === null || value === undefined) {
+        return '<span class="text-muted">null</span>';
+    }
+    if (typeof value === 'number') {
+        return Math.round(value * 10000) / 10000;
+    }
+    if (Array.isArray(value)) {
+        return `[${value.length} items]`;
+    }
+    if (typeof value === 'boolean') {
+        return value ? '<span class="text-success">true</span>' : '<span class="text-danger">false</span>';
+    }
+    return escapeHtml(String(value));
+}
+
+function navigateAttributesInto(key) {
+    attributePath.push(key);
+    displayAttributes(currentDetailsData, attributePath);
+}
+
+function navigateAttributesBack() {
+    attributePath.pop();
+    displayAttributes(currentDetailsData, attributePath);
+}
+
+function navigateToPath(path) {
+    attributePath = path;
+    displayAttributes(currentDetailsData, attributePath);
+}
+
+// =============================================================================
+// Attribute History Modal
+// =============================================================================
+
+historyModalEl.addEventListener('hidden.bs.modal', () => {
     if (historyChart) {
         historyChart.dispose();
         historyChart = null;
@@ -260,69 +643,34 @@ historyModalEl.addEventListener('hidden.bs.modal', function () {
     historyListDom.innerHTML = '';
 });
 
-// Resize chart when modal fully opens
-historyModalEl.addEventListener('shown.bs.modal', function () {
+historyModalEl.addEventListener('shown.bs.modal', () => {
     if (historyChart) {
         historyChart.resize();
     }
 });
 
-
-function displayDetails(data) {
-    if (!data || !data.attributes) return;
-
-    const attrs = data.attributes;
-    // User indicated smart_pi is in specific_states
-    const specificStates = attrs.specific_states || {};
-    const smartPi = specificStates.smart_pi || attrs.smart_pi || {};
-
-    // Construction du HTML - UNIQUEMENT Smart PI demandé
-    let html = '';
-
-    // Smart PI
-    if (Object.keys(smartPi).length > 0) {
-        html += `<h6 class="mt-3">Smart PI (Cliquer pour historique)</h6>`;
-        html += `<table class="table table-sm table-dark table-striped text-xsmall">`;
-        for (const [key, value] of Object.entries(smartPi)) {
-            // Formatage des nombres
-            let displayVal = value;
-            if (typeof value === 'number') {
-                // Arrondir si nécessaire, ou afficher tel quel
-                displayVal = Math.round(value * 10000) / 10000;
-            }
-            // Ajout de la classe clickable-row et event onclick
-            html += `<tr class="clickable-row" onclick="showAttributeHistory('${key}')">
-                        <td>${key}</td><td class="text-end">${displayVal}</td>
-                     </tr>`;
-        }
-        html += `</table>`;
-    } else {
-        html += `<p class="text-warning small mt-3">Pas de données Smart PI</p>`;
-    }
-
-    detailsContent.innerHTML = html;
-}
-
-// Fonction pour afficher l'historique
 async function showAttributeHistory(key) {
-    if (!currentFilename) return;
+    if (!currentEntityId) return;
 
-    historyTitle.textContent = `Historique : ${key}`;
+    historyTitle.textContent = `History: ${key}`;
     historyChartDom.classList.add('d-none');
     historyListDom.classList.add('d-none');
     historyLoading.classList.remove('d-none');
-    
-    // Use HTML element method to show modal (bootstrap 5 vanilla)
+
     historyModal.show();
 
     try {
-        const response = await axios.get(`/api/smartpi-history/${currentFilename}`, {
-            params: { key: key }
+        const params = new URLSearchParams({
+            key,
+            start: dateRange.start.toISOString(),
+            end: dateRange.end.toISOString()
         });
+
+        const response = await axios.get(`/api/attribute-history/${currentEntityId}?${params}`);
         const data = response.data;
-        
+
         historyLoading.classList.add('d-none');
-        
+
         if (data.type === 'numeric') {
             renderHistoryChart(data);
         } else {
@@ -330,20 +678,18 @@ async function showAttributeHistory(key) {
         }
 
     } catch (error) {
-        console.error("Erreur historique:", error);
-        alert("Impossible de charger l'historique.");
+        console.error('Failed to load attribute history:', error);
+        alert('Failed to load attribute history');
         historyLoading.classList.add('d-none');
     }
 }
 
 function renderHistoryChart(data) {
     historyChartDom.classList.remove('d-none');
-    // Ensure container has size before init
-    // (Modal 'shown' event usually handles resize, but we init here)
-    
+
     if (historyChart) historyChart.dispose();
     historyChart = echarts.init(historyChartDom, 'dark');
-    
+
     const option = {
         backgroundColor: 'transparent',
         tooltip: {
@@ -358,9 +704,7 @@ function renderHistoryChart(data) {
             boundaryGap: false,
             data: data.timestamps,
             axisLabel: {
-                formatter: function (value) {
-                    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }
+                formatter: (value) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }
         },
         yAxis: {
@@ -387,29 +731,153 @@ function renderHistoryChart(data) {
             }
         }]
     };
-    
+
     historyChart.setOption(option);
 }
 
 function renderHistoryList(data) {
     historyListDom.classList.remove('d-none');
-    
+
     let html = '<table class="table table-dark table-sm table-striped">';
-    html += '<thead><tr><th>Heure</th><th>Valeur</th></tr></thead><tbody>';
-    
-    // On parcourt à l'envers pour avoir le plus récent en haut ? ou ordre chrono ?
-    // Ordre chrono c'est mieux pour l'historique, mais liste souvent plus récent en haut.
-    // Gardons l'ordre des données (chrono).
-    
+    html += '<thead><tr><th>Time</th><th>Value</th></tr></thead><tbody>';
+
     data.timestamps.forEach((ts, index) => {
         const val = data.values[index];
         const dateStr = new Date(ts).toLocaleString();
-        html += `<tr><td>${dateStr}</td><td>${val}</td></tr>`;
+        html += `<tr><td>${dateStr}</td><td>${escapeHtml(String(val))}</td></tr>`;
     });
-    
+
     html += '</tbody></table>';
     historyListDom.innerHTML = html;
 }
 
+// =============================================================================
+// Date Range Selection
+// =============================================================================
+
+function openDateRangeModal() {
+    startPicker.setDate(dateRange.start);
+    endPicker.setDate(dateRange.end);
+    dateRangeModal.show();
+}
+
+function applyDateRange() {
+    const startDate = startPicker.selectedDates[0];
+    const endDate = endPicker.selectedDates[0];
+
+    if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
+        return;
+    }
+
+    if (startDate >= endDate) {
+        alert('Start date must be before end date');
+        return;
+    }
+
+    dateRange.start = startDate;
+    dateRange.end = endDate;
+
+    dateRangeModal.hide();
+
+    // Reload history with new date range
+    if (currentEntityId) {
+        loadEntityHistory();
+    }
+}
+
+function applyQuickRange(days) {
+    dateRange.end = new Date();
+    dateRange.start = new Date();
+    dateRange.start.setDate(dateRange.start.getDate() - days);
+
+    startPicker.setDate(dateRange.start);
+    endPicker.setDate(dateRange.end);
+
+    // Update button states
+    document.querySelectorAll('.quick-range').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.days) === days) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// =============================================================================
+// Event Listeners Setup
+// =============================================================================
+
+function setupEventListeners() {
+    // Entity search input
+    entitySearch.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+
+        if (query.length >= 2) {
+            const filtered = filterEntities(query);
+            renderEntityDropdown(filtered);
+            entityDropdown.classList.remove('d-none');
+        } else {
+            entityDropdown.classList.add('d-none');
+        }
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!entitySearch.contains(e.target) && !entityDropdown.contains(e.target)) {
+            entityDropdown.classList.add('d-none');
+        }
+    });
+
+    // Focus on search shows dropdown if has content
+    entitySearch.addEventListener('focus', () => {
+        if (entitySearch.value.length >= 2) {
+            entityDropdown.classList.remove('d-none');
+        }
+    });
+
+    // Keyboard navigation
+    entitySearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            entityDropdown.classList.add('d-none');
+        }
+    });
+
+    // Date range button
+    dateRangeBtn.addEventListener('click', openDateRangeModal);
+
+    // Apply date range
+    document.getElementById('apply-date-range').addEventListener('click', applyDateRange);
+
+    // Quick range buttons
+    document.querySelectorAll('.quick-range').forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyQuickRange(parseInt(btn.dataset.days));
+        });
+    });
+
+    // Refresh button
+    refreshBtn.addEventListener('click', loadEntityHistory);
+}
+
+// =============================================================================
+// Utilities
+// =============================================================================
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Make functions available globally for onclick handlers
+window.clearSelectedEntity = clearSelectedEntity;
+window.navigateAttributesBack = navigateAttributesBack;
+window.navigateAttributesInto = navigateAttributesInto;
+window.navigateToPath = navigateToPath;
+window.showAttributeHistory = showAttributeHistory;
+
+// =============================================================================
 // Start
-loadFiles();
+// =============================================================================
+
+init();
