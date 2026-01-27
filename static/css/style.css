@@ -1,0 +1,50 @@
+body {
+    height: 100vh;
+    overflow: hidden;
+}
+
+#main-chart {
+    background-color: #1e1e1e;
+    /* Fond sombre proche de HA */
+    border-radius: 4px;
+    height: 500px;
+    /* Hauteur fixe plus proche d'une carte HA */
+    width: 100%;
+    margin: auto;
+    /* Centrage vertical si le conteneur l'autorise */
+}
+
+#sidebar {
+    border-left: 1px solid #444;
+    height: 100%;
+    overflow-y: auto;
+    display: block;
+    /* Ensure it behaves as a block for scrolling */
+}
+
+/* Ensure flex parents don't break scroll */
+.row.flex-grow-1 {
+    min-height: 0;
+    /* Important for nested flex scroll */
+}
+
+.text-xsmall {
+    font-size: 0.75rem;
+}
+
+/* Scrollbar noir discret */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #555;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
