@@ -580,7 +580,7 @@ function displayAttributes(data, path) {
     if (path.length > 0) {
         const backText = window.i18n ? window.i18n.t('back') : 'Back';
         html += `
-            <button class="btn btn-sm btn-outline-secondary mb-2" onclick="navigateAttributesBack()">
+            <button class="btn btn-sm btn-outline-light mb-2" onclick="navigateAttributesBack()">
                 <i class="bi bi-arrow-left"></i> ${backText}
             </button>
             <div class="attribute-path mb-2">
