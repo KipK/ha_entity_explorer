@@ -2,38 +2,34 @@
 # requires-python = ">=3.9"
 # dependencies = [
 #     "flask",
-#     "pandas",
+#     "pyyaml",
+#     "requests",
+#     "python-dateutil",
 # ]
 # ///
 
-# ============================================================================
-# CONFIGURATION RÉSEAU
-# ============================================================================
-# Interface réseau sur laquelle écouter :
-#   - "0.0.0.0" : Écoute sur toutes les interfaces (accès depuis d'autres machines)
-#   - "127.0.0.1" : Écoute uniquement en local (accès depuis cette machine uniquement)
-HOST = "0.0.0.0"
-
-# Port d'écoute (changez si le port est bloqué par un EDR/firewall)
-# Ports alternatifs courants : 8000, 8080, 8888, 3000, 5001, 5555
-PORT = 5000
-# ============================================================================
+"""
+HA Entity Explorer - Home Assistant Entity History Visualization
+A web application to explore and visualize history of any Home Assistant entity.
+"""
 
 import os
 import json
-import pandas as pd
-import numpy as np
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, abort
 from dateutil import parser
+
+from config import load_config
 
 app = Flask(__name__)
 
-# Configuration
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, 'data')
+# Load configuration
+config = load_config()
 
-# Cache global pour éviter de recharger le gros JSON à chaque requête
-# Amélioration possible: classe de gestion de cache plus sophistiquée
+# Configuration shortcuts
+HOST = config.app.host
+PORT = config.app.port
+
+# Cache for API responses (optional, for performance)
 CACHE = {}
 
 def get_dataframe(filename):
@@ -90,6 +86,12 @@ def get_dataframe(filename):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/api/config')
+def get_app_config():
+    """Return public configuration for frontend (never expose API token)."""
+    return jsonify(config.get_public_config())
 
 @app.route('/api/files')
 def list_files():

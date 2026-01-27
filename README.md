@@ -1,36 +1,77 @@
+# HA Entity Explorer
 
-# Visualiseur d'Historique Smart-PI
+A standalone web application to explore and visualize the history of any Home Assistant entity.
 
-Ce script standalone permet de visualiser les exports JSON d'historique de Home Assistant pour le Thermostat Versatile.
+## Features
 
-## Utilisation avec pipx (Recommandé)
+- **Entity Browser**: Search and select any entity from your Home Assistant instance
+- **Interactive Charts**: Zoom, pan, and explore entity history with ECharts
+- **Attribute Explorer**: Click on chart points to view all entity attributes
+- **Custom Date Range**: Select the time period you want to analyze
+- **Multi-language**: Available in English and French
+- **Entity Filtering**: Whitelist/blacklist entities for security
 
-Cette méthode ne nécessite aucune installation manuelle de dépendances.
+## Quick Start
 
-1. Placer vos fichiers d'export JSON dans le dossier `data/`.
-   
-2. Lancer le serveur (depuis la racine du projet) :
-   ```bash
-   pipx run dev_tests/smartpi_history_graph/server.py
-   ```
+### 1. Install dependencies
 
-3. Ouvrir le navigateur :
-   - Local : [http://127.0.0.1:5000](http://127.0.0.1:5000)
-   - Réseau : `http://<IP_DE_VOTRE_MACHINE>:5000` (Le serveur écoute maintenant sur toutes les interfaces)
+```bash
+pip install -r requirements.txt
+```
 
-## Installation Manuelle (Alternative)
+### 2. Configure
 
-1. Installer les dépendances :
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Lancer :
-   ```bash
-   python3 server.py
-   ```
+Copy the example configuration file:
 
-## Fonctionnalités
-- **Graphique interactif** : Zoom, Pan, Reset.
-- **Données** : Température intérieure, Consigne, Température extérieure, Zones de chauffe.
-- **Détails** : Cliquez sur le graphique pour voir les états détaillés de Smart-PI à l'instant T dans le panneaulatéral.
-- **Sélecteur de fichier** : Basculez facilement entre plusieurs fichiers JSON présents dans le dossier `data/`.
+```bash
+cp config.yaml.example config.yaml
+```
+
+Edit `config.yaml` with your Home Assistant details:
+
+```yaml
+home_assistant:
+  url: "http://homeassistant.local:8123"
+  api_token: "your_long_lived_access_token_here"
+
+app:
+  language: "en"  # or "fr"
+```
+
+To generate a long-lived access token:
+1. Go to your Home Assistant profile
+2. Scroll to "Long-Lived Access Tokens"
+3. Click "Create Token"
+
+### 3. Run
+
+```bash
+python server.py
+```
+
+Open your browser at: http://localhost:5000
+
+## Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `home_assistant.url` | Home Assistant URL | Required |
+| `home_assistant.api_token` | Long-lived access token | Required |
+| `app.language` | Interface language (fr/en) | fr |
+| `app.default_history_days` | Days of history to load | 4 |
+| `app.host` | Network interface | 0.0.0.0 |
+| `app.port` | Server port | 5000 |
+| `whitelist` | Only show these entities | [] |
+| `blacklist` | Hide these entities | [] |
+
+## Using with pipx (Alternative)
+
+No manual installation needed:
+
+```bash
+pipx run server.py
+```
+
+## License
+
+MIT

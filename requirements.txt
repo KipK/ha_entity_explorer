@@ -1,2 +1,5 @@
+# HA Entity Explorer - Dependencies
 flask
-pandas
+pyyaml
+requests
+python-dateutil

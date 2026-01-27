@@ -1,0 +1,47 @@
+# =============================================================================
+# HA Entity Explorer - Configuration File
+# =============================================================================
+# Copy this file to config.yaml and fill in your values.
+# The config.yaml file is ignored by git to protect your API token.
+# =============================================================================
+
+# Home Assistant Connection Settings
+home_assistant:
+  # URL of your Home Assistant instance (include port if non-standard)
+  url: "http://homeassistant.local:8123"
+  
+  # Long-lived access token
+  # Generate from: Profile > Long-Lived Access Tokens > Create Token
+  api_token: "your_long_lived_access_token_here"
+
+# Application Settings
+app:
+  # Interface language: "fr" (French) or "en" (English)
+  language: "fr"
+  
+  # Number of history days loaded by default
+  default_history_days: 4
+  
+  # Network interface to listen on
+  # "0.0.0.0" = all interfaces (accessible from network)
+  # "127.0.0.1" = localhost only
+  host: "0.0.0.0"
+  
+  # Port to listen on
+  port: 5000
+
+# Entity Filtering (optional)
+# Use whitelist OR blacklist, not both. Whitelist takes precedence.
+
+# If whitelist is defined, ONLY these entities will be accessible
+whitelist: []
+  # Example:
+  # - climate.living_room
+  # - sensor.temperature_bedroom
+  # - switch.garden_lights
+
+# If blacklist is defined, these entities will be EXCLUDED
+blacklist: []
+  # Example:
+  # - sensor.private_data
+  # - binary_sensor.security_system
