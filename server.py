@@ -158,6 +158,77 @@ def get_details(filename):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/smartpi-history/<filename>')
+def get_smartpi_history(filename):
+    """Extract history for a specific Smart PI attribute."""
+    key = request.args.get('key')
+    if not key:
+        return jsonify({'error': 'Missing key parameter'}), 400
+
+    df = get_dataframe(filename)
+    if df is None:
+        return jsonify({'error': 'File not found'}), 404
+
+    try:
+        timestamps = []
+        values = []
+        is_numeric = None # Will determine based on first non-null value
+
+        # Iterate over the dataframe (or raw data if needed, but dataframe is cached)
+        # using full_entry is safer to get deep attributes
+        
+        for ts, row in df.iterrows():
+            entry = row['full_entry']
+            attrs = entry.get('attributes', {})
+            specific_states = attrs.get('specific_states', {})
+            
+            # Smart PI attributes can be in specific_states or directly in attributes (rare but possible logic)
+            # User request specifically mentions "Smart PI" attributes.
+            # Usually they are in specific_states['smart_pi'] or similar.
+            # Let's search in specific_states.smart_pi, then attributes.smart_pi
+            
+            val = None
+            found = False
+            
+            # Strategy: look into specific_states -> smart_pi -> key
+            if 'smart_pi' in specific_states and isinstance(specific_states['smart_pi'], dict):
+                if key in specific_states['smart_pi']:
+                    val = specific_states['smart_pi'][key]
+                    found = True
+            
+            # Fallback: look into attributes -> smart_pi -> key
+            if not found and 'smart_pi' in attrs and isinstance(attrs['smart_pi'], dict):
+                if key in attrs['smart_pi']:
+                    val = attrs['smart_pi'][key]
+                    found = True
+
+            # If still not found, simple attributes? (User said 'display attributes of dict smart_pi')
+            # So we stick to smart_pi dicts.
+            
+            timestamps.append(ts.isoformat())
+            values.append(val)
+            
+            if is_numeric is None and val is not None:
+                if isinstance(val, (int, float)):
+                    is_numeric = True
+                else:
+                    is_numeric = False
+        
+        # If all None, default to text
+        if is_numeric is None:
+            is_numeric = False
+
+        return jsonify({
+            'key': key,
+            'type': 'numeric' if is_numeric else 'text',
+            'timestamps': timestamps,
+            'values': values
+        })
+
+    except Exception as e:
+        print(e)
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     print(f"Starting Flask server on {HOST}:{PORT}")
     print(f"Access the application at: http://{HOST if HOST != '0.0.0.0' else 'localhost'}:{PORT}")

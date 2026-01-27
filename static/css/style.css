@@ -48,3 +48,12 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #777;
 }
+
+.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+    background-color: #444 !important; /* Slightly lighter on hover */
+}

@@ -241,6 +241,33 @@ function fetchDetails(timestamp) {
     }, 50);
 }
 
+const historyModalEl = document.getElementById('historyModal');
+const historyModal = new bootstrap.Modal(historyModalEl);
+const historyTitle = document.getElementById('historyModalLabel');
+const historyChartDom = document.getElementById('history-chart');
+const historyListDom = document.getElementById('history-list');
+const historyLoading = document.getElementById('history-loading');
+
+let historyChart = null;
+
+// Clean up chart when modal closes
+historyModalEl.addEventListener('hidden.bs.modal', function () {
+    if (historyChart) {
+        historyChart.dispose();
+        historyChart = null;
+    }
+    historyChartDom.innerHTML = '';
+    historyListDom.innerHTML = '';
+});
+
+// Resize chart when modal fully opens
+historyModalEl.addEventListener('shown.bs.modal', function () {
+    if (historyChart) {
+        historyChart.resize();
+    }
+});
+
+
 function displayDetails(data) {
     if (!data || !data.attributes) return;
 
@@ -254,7 +281,7 @@ function displayDetails(data) {
 
     // Smart PI
     if (Object.keys(smartPi).length > 0) {
-        html += `<h6 class="mt-3">Smart PI</h6>`;
+        html += `<h6 class="mt-3">Smart PI (Cliquer pour historique)</h6>`;
         html += `<table class="table table-sm table-dark table-striped text-xsmall">`;
         for (const [key, value] of Object.entries(smartPi)) {
             // Formatage des nombres
@@ -263,7 +290,10 @@ function displayDetails(data) {
                 // Arrondir si nécessaire, ou afficher tel quel
                 displayVal = Math.round(value * 10000) / 10000;
             }
-            html += `<tr><td>${key}</td><td class="text-end">${displayVal}</td></tr>`;
+            // Ajout de la classe clickable-row et event onclick
+            html += `<tr class="clickable-row" onclick="showAttributeHistory('${key}')">
+                        <td>${key}</td><td class="text-end">${displayVal}</td>
+                     </tr>`;
         }
         html += `</table>`;
     } else {
@@ -271,6 +301,114 @@ function displayDetails(data) {
     }
 
     detailsContent.innerHTML = html;
+}
+
+// Fonction pour afficher l'historique
+async function showAttributeHistory(key) {
+    if (!currentFilename) return;
+
+    historyTitle.textContent = `Historique : ${key}`;
+    historyChartDom.classList.add('d-none');
+    historyListDom.classList.add('d-none');
+    historyLoading.classList.remove('d-none');
+    
+    // Use HTML element method to show modal (bootstrap 5 vanilla)
+    historyModal.show();
+
+    try {
+        const response = await axios.get(`/api/smartpi-history/${currentFilename}`, {
+            params: { key: key }
+        });
+        const data = response.data;
+        
+        historyLoading.classList.add('d-none');
+        
+        if (data.type === 'numeric') {
+            renderHistoryChart(data);
+        } else {
+            renderHistoryList(data);
+        }
+
+    } catch (error) {
+        console.error("Erreur historique:", error);
+        alert("Impossible de charger l'historique.");
+        historyLoading.classList.add('d-none');
+    }
+}
+
+function renderHistoryChart(data) {
+    historyChartDom.classList.remove('d-none');
+    // Ensure container has size before init
+    // (Modal 'shown' event usually handles resize, but we init here)
+    
+    if (historyChart) historyChart.dispose();
+    historyChart = echarts.init(historyChartDom, 'dark');
+    
+    const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' }
+        },
+        grid: {
+            left: '3%', right: '4%', bottom: '15%', containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: data.timestamps,
+            axisLabel: {
+                formatter: function (value) {
+                    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+        },
+        yAxis: {
+            type: 'value',
+            scale: true,
+            splitLine: { show: true, lineStyle: { color: '#333' } }
+        },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { start: 0, end: 100 }
+        ],
+        series: [{
+            name: data.key,
+            type: 'line',
+            step: 'start',
+            data: data.values,
+            symbol: 'none',
+            lineStyle: { width: 2, color: '#00d2ff' },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(0, 210, 255, 0.3)' },
+                    { offset: 1, color: 'rgba(0, 210, 255, 0)' }
+                ])
+            }
+        }]
+    };
+    
+    historyChart.setOption(option);
+}
+
+function renderHistoryList(data) {
+    historyListDom.classList.remove('d-none');
+    
+    let html = '<table class="table table-dark table-sm table-striped">';
+    html += '<thead><tr><th>Heure</th><th>Valeur</th></tr></thead><tbody>';
+    
+    // On parcourt à l'envers pour avoir le plus récent en haut ? ou ordre chrono ?
+    // Ordre chrono c'est mieux pour l'historique, mais liste souvent plus récent en haut.
+    // Gardons l'ordre des données (chrono).
+    
+    data.timestamps.forEach((ts, index) => {
+        const val = data.values[index];
+        const dateStr = new Date(ts).toLocaleString();
+        html += `<tr><td>${dateStr}</td><td>${val}</td></tr>`;
+    });
+    
+    html += '</tbody></table>';
+    historyListDom.innerHTML = html;
 }
 
 // Start
