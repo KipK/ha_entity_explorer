@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -29,7 +29,7 @@
         <!-- Navbar -->
         <nav class="navbar navbar-dark bg-secondary mb-3">
             <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1">
+                <span class="navbar-brand mb-0 h1" data-i18n="appTitle">
                     <i class="bi bi-house-door"></i> HA Entity Explorer
                 </span>
 
@@ -37,7 +37,8 @@
                 <div class="d-flex align-items-center flex-grow-1 mx-4">
                     <div class="position-relative flex-grow-1" style="max-width: 500px;">
                         <input type="text" id="entity-search" class="form-control bg-dark text-light border-secondary"
-                            placeholder="Search for an entity..." autocomplete="off">
+                            data-i18n-placeholder="searchPlaceholder" placeholder="Search for an entity..."
+                            autocomplete="off">
                         <div id="entity-dropdown" class="entity-dropdown d-none">
                             <!-- Entity suggestions will be populated here -->
                         </div>
@@ -61,13 +62,13 @@
                 <!-- Date Range Controls -->
                 <div class="d-flex align-items-center mb-3" id="date-controls">
                     <button id="date-range-btn" class="btn btn-outline-light btn-sm" disabled>
-                        <i class="bi bi-calendar-range"></i> Period
+                        <i class="bi bi-calendar-range"></i> <span data-i18n="period">Period</span>
                     </button>
                     <span id="date-range-display" class="ms-3 text-muted small">
                         <!-- Will show: "from 22/01/2025 15:52 to 27/01/2025 16:05" -->
                     </span>
                     <button id="refresh-btn" class="btn btn-outline-success btn-sm ms-auto d-none">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                        <i class="bi bi-arrow-clockwise"></i> <span data-i18n="refresh">Refresh</span>
                     </button>
                 </div>
 
@@ -77,7 +78,7 @@
                     <div id="chart-placeholder" class="d-flex align-items-center justify-content-center h-100">
                         <div class="text-center text-muted">
                             <i class="bi bi-graph-up" style="font-size: 4rem;"></i>
-                            <p class="mt-3">Select an entity to view its history</p>
+                            <p class="mt-3" data-i18n="selectEntityPrompt">Select an entity to view its history</p>
                         </div>
                     </div>
                 </div>
@@ -85,10 +86,10 @@
 
             <!-- Sidebar -->
             <div class="col-md-3 bg-secondary p-3 overflow-auto h-100" id="sidebar">
-                <h5>Details at <span id="cursor-time">--:--</span></h5>
+                <h5><span data-i18n="detailsAt">Details at</span> <span id="cursor-time">--:--</span></h5>
                 <hr>
                 <div id="details-content">
-                    <p class="text-muted">Click on the chart to see details.</p>
+                    <p class="text-muted" data-i18n="clickToSeeDetails">Click on the chart to see details.</p>
                 </div>
             </div>
         </div>
@@ -99,14 +100,14 @@
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content bg-dark text-light border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title" id="historyModalLabel">History</h5>
+                    <h5 class="modal-title" id="historyModalLabel"><span data-i18n="history">History</span></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="height: 60vh; overflow-y: auto;">
                     <div id="history-loading" class="text-center py-5 d-none">
                         <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden" data-i18n="loading">Loading...</span>
                         </div>
                     </div>
                     <div id="history-chart" style="width: 100%; height: 100%;"></div>
@@ -121,40 +122,42 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-light border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title">Select Date Range</h5>
+                    <h5 class="modal-title" data-i18n="selectDateRange">Select Date Range</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label">From</label>
+                            <label class="form-label" data-i18n="from">From</label>
                             <input type="text" id="date-start" class="form-control bg-dark text-light border-secondary">
                         </div>
                         <div class="col-6">
-                            <label class="form-label">To</label>
+                            <label class="form-label" data-i18n="to">To</label>
                             <input type="text" id="date-end" class="form-control bg-dark text-light border-secondary">
                         </div>
                     </div>
                     <div class="mt-3">
-                        <label class="form-label">Quick Select</label>
+                        <label class="form-label" data-i18n="quickSelect">Quick Select</label>
                         <div class="btn-group w-100" role="group">
-                            <button type="button" class="btn btn-outline-light quick-range" data-days="1">1 day</button>
-                            <button type="button" class="btn btn-outline-light quick-range" data-days="3">3
-                                days</button>
-                            <button type="button" class="btn btn-outline-light quick-range" data-days="7">7
-                                days</button>
-                            <button type="button" class="btn btn-outline-light quick-range" data-days="14">14
-                                days</button>
-                            <button type="button" class="btn btn-outline-light quick-range" data-days="30">30
-                                days</button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="1">1 <span
+                                    data-i18n="day">day</span></button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="3">3 <span
+                                    data-i18n="days">days</span></button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="7">7 <span
+                                    data-i18n="days">days</span></button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="14">14 <span
+                                    data-i18n="days">days</span></button>
+                            <button type="button" class="btn btn-outline-light quick-range" data-days="30">30 <span
+                                    data-i18n="days">days</span></button>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="cancel">Cancel</button>
                     <button type="button" class="btn btn-primary" id="apply-date-range">
-                        <i class="bi bi-check"></i> Apply
+                        <i class="bi bi-check"></i> <span data-i18n="apply">Apply</span>
                     </button>
                 </div>
             </div>
@@ -163,6 +166,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- i18n (must load before main.js) -->
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <!-- Main JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>

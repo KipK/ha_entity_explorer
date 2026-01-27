@@ -75,6 +75,11 @@ async function loadConfig() {
         const response = await axios.get('/api/config');
         appConfig = response.data;
         console.log('Config loaded:', appConfig);
+
+        // Set language from config
+        if (appConfig.language && window.i18n) {
+            window.i18n.setLanguage(appConfig.language);
+        }
     } catch (error) {
         console.error('Failed to load config:', error);
         appConfig = { language: 'en', defaultHistoryDays: 4 };
@@ -122,7 +127,8 @@ function initMainChart() {
 
 async function loadEntities() {
     try {
-        entityDropdown.innerHTML = '<div class="loading">Loading entities...</div>';
+        const loadingText = window.i18n ? window.i18n.t('loadingEntities') : 'Loading entities...';
+        entityDropdown.innerHTML = `<div class="loading">${loadingText}</div>`;
 
         const response = await axios.get('/api/entities');
         entities = response.data;
@@ -132,7 +138,8 @@ async function loadEntities() {
 
     } catch (error) {
         console.error('Failed to load entities:', error);
-        entityDropdown.innerHTML = '<div class="no-results">Failed to load entities</div>';
+        const errorText = window.i18n ? window.i18n.t('failedToLoadEntities') : 'Failed to load entities';
+        entityDropdown.innerHTML = `<div class="no-results">${errorText}</div>`;
     }
 }
 
@@ -151,7 +158,8 @@ function filterEntities(query) {
 
 function renderEntityDropdown(filteredEntities) {
     if (filteredEntities.length === 0) {
-        entityDropdown.innerHTML = '<div class="no-results">No entities found</div>';
+        const noResultsText = window.i18n ? window.i18n.t('noEntitiesFound') : 'No entities found';
+        entityDropdown.innerHTML = `<div class="no-results">${noResultsText}</div>`;
         return;
     }
 
@@ -210,7 +218,8 @@ function clearSelectedEntity() {
     chartPlaceholder.classList.remove('d-none');
 
     // Clear details
-    detailsContent.innerHTML = '<p class="text-muted">Click on the chart to see details.</p>';
+    const clickText = window.i18n ? window.i18n.t('clickToSeeDetails') : 'Click on the chart to see details.';
+    detailsContent.innerHTML = `<p class="text-muted">${clickText}</p>`;
     cursorTimeDisplay.textContent = '--:--';
 }
 
@@ -248,27 +257,40 @@ async function loadEntityHistory() {
 
     } catch (error) {
         console.error('Failed to load history:', error);
-        alert('Failed to load entity history: ' + (error.response?.data?.error || error.message));
+        const errorText = window.i18n ? window.i18n.t('failedToLoadHistory') : 'Failed to load entity history';
+        alert(errorText + ': ' + (error.response?.data?.error || error.message));
     } finally {
         myChart.hideLoading();
     }
 }
 
 function updateDateRangeDisplay() {
-    const formatDate = (d) => {
-        return d.toLocaleString(appConfig?.language === 'fr' ? 'fr-FR' : 'en-US', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    dateRangeDisplay.textContent = `from ${formatDate(dateRange.start)} to ${formatDate(dateRange.end)}`;
+    if (window.i18n) {
+        dateRangeDisplay.textContent = window.i18n.formatDateRange(dateRange.start, dateRange.end);
+    } else {
+        const formatDate = (d) => {
+            return d.toLocaleString('en-US', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
+        dateRangeDisplay.textContent = `from ${formatDate(dateRange.start)} to ${formatDate(dateRange.end)}`;
+    }
 }
 
 function renderClimateChart(data) {
+    // Get translated labels
+    const t = window.i18n ? window.i18n.t : (k) => k;
+    const labels = {
+        interior: t('interior'),
+        setpoint: t('setpoint'),
+        exterior: t('exterior'),
+        heating: t('heating')
+    };
+
     // Prepare heating area data
     const heatingData = data.timestamps.map((ts, index) => {
         const isHeating = data.is_heating[index];
@@ -288,9 +310,9 @@ function renderClimateChart(data) {
             axisPointer: { type: 'cross' }
         },
         legend: {
-            data: ['Interior', 'Setpoint', 'Exterior', 'Heating'],
+            data: [labels.interior, labels.setpoint, labels.exterior, labels.heating],
             top: 10,
-            selected: { 'Exterior': false }
+            selected: { [labels.exterior]: false }
         },
         grid: {
             left: '3%',
@@ -327,7 +349,7 @@ function renderClimateChart(data) {
         },
         series: [
             {
-                name: 'Heating',
+                name: labels.heating,
                 type: 'line',
                 step: 'start',
                 data: heatingData,
@@ -336,7 +358,7 @@ function renderClimateChart(data) {
                 symbol: 'none'
             },
             {
-                name: 'Setpoint',
+                name: labels.setpoint,
                 type: 'line',
                 step: 'start',
                 data: data.temperature,
@@ -344,7 +366,7 @@ function renderClimateChart(data) {
                 symbol: 'none'
             },
             {
-                name: 'Interior',
+                name: labels.interior,
                 type: 'line',
                 step: 'start',
                 data: data.current_temperature,
@@ -358,7 +380,7 @@ function renderClimateChart(data) {
                 symbol: 'none'
             },
             {
-                name: 'Exterior',
+                name: labels.exterior,
                 type: 'line',
                 step: 'start',
                 data: data.ext_current_temperature,
@@ -534,8 +556,10 @@ async function fetchDetails(timestamp) {
 }
 
 function displayAttributes(data, path) {
+    const t = window.i18n ? window.i18n.t : (k) => k;
+
     if (!data || !data.attributes) {
-        detailsContent.innerHTML = '<p class="text-muted">No attributes available</p>';
+        detailsContent.innerHTML = `<p class="text-muted">${t('noAttributesAvailable')}</p>`;
         return;
     }
 
@@ -554,9 +578,10 @@ function displayAttributes(data, path) {
 
     // Back button if not at root
     if (path.length > 0) {
+        const backText = window.i18n ? window.i18n.t('back') : 'Back';
         html += `
             <button class="btn btn-sm btn-outline-secondary mb-2" onclick="navigateAttributesBack()">
-                <i class="bi bi-arrow-left"></i> Back
+                <i class="bi bi-arrow-left"></i> ${backText}
             </button>
             <div class="attribute-path mb-2">
                 <span class="path-item" onclick="navigateToPath([])">attributes</span>
@@ -578,10 +603,11 @@ function displayAttributes(data, path) {
         if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
             // Dict - show as navigable folder
             const keyCount = Object.keys(value).length;
+            const itemsText = window.i18n ? window.i18n.t('items') : 'items';
             html += `
                 <tr class="clickable-row dict-row" onclick="navigateAttributesInto('${key}')">
                     <td><i class="bi bi-folder-fill text-warning me-2"></i>${key}</td>
-                    <td class="text-end text-muted">${keyCount} items →</td>
+                    <td class="text-end text-muted">${keyCount} ${itemsText} →</td>
                 </tr>`;
         } else {
             // Simple value - clickable to show history
@@ -652,7 +678,8 @@ historyModalEl.addEventListener('shown.bs.modal', () => {
 async function showAttributeHistory(key) {
     if (!currentEntityId) return;
 
-    historyTitle.textContent = `History: ${key}`;
+    const t = window.i18n ? window.i18n.t : (k) => k;
+    historyTitle.textContent = `${t('history')}: ${key}`;
     historyChartDom.classList.add('d-none');
     historyListDom.classList.add('d-none');
     historyLoading.classList.remove('d-none');
@@ -679,7 +706,8 @@ async function showAttributeHistory(key) {
 
     } catch (error) {
         console.error('Failed to load attribute history:', error);
-        alert('Failed to load attribute history');
+        const errorText = window.i18n ? window.i18n.t('failedToLoadAttributeHistory') : 'Failed to load attribute history';
+        alert(errorText);
         historyLoading.classList.add('d-none');
     }
 }
@@ -738,8 +766,9 @@ function renderHistoryChart(data) {
 function renderHistoryList(data) {
     historyListDom.classList.remove('d-none');
 
+    const t = window.i18n ? window.i18n.t : (k) => k;
     let html = '<table class="table table-dark table-sm table-striped">';
-    html += '<thead><tr><th>Time</th><th>Value</th></tr></thead><tbody>';
+    html += `<thead><tr><th>${t('time')}</th><th>${t('value')}</th></tr></thead><tbody>`;
 
     data.timestamps.forEach((ts, index) => {
         const val = data.values[index];
@@ -764,14 +793,15 @@ function openDateRangeModal() {
 function applyDateRange() {
     const startDate = startPicker.selectedDates[0];
     const endDate = endPicker.selectedDates[0];
+    const t = window.i18n ? window.i18n.t : (k) => k;
 
     if (!startDate || !endDate) {
-        alert('Please select both start and end dates');
+        alert(t('errorDateRange'));
         return;
     }
 
     if (startDate >= endDate) {
-        alert('Start date must be before end date');
+        alert(t('errorDateOrder'));
         return;
     }
 
