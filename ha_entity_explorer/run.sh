@@ -16,21 +16,27 @@ LOG_LEVEL=$(bashio::config 'log_level')
 LANGUAGE=$(bashio::config 'language')
 DEFAULT_HISTORY_DAYS=$(bashio::config 'default_history_days')
 
-# HA URL and TOKEN are no longer in options, so we default to Supervisor
-# We used to check bashio::config but it errors if keys are missing from options.json
+# Generate a random secret key for Flask sessions
+# This ensures security without user intervention
+if command -v openssl >/dev/null 2>&1; then
+    SECRET_KEY=$(openssl rand -hex 32)
+else
+    # Fallback if openssl not available
+    SECRET_KEY=$(date +%s%N | sha256sum | base64 | head -c 32)
+fi
+bashio::log.info "Generated session secret key"
 
 # Default internal URL
 HA_URL="http://supervisor/core"
 bashio::log.info "Using default internal HA URL"
 
 # Supervisor Token
-# Check if SUPERVISOR_TOKEN env var is set
-if bashio::var.has_value "${SUPERVISOR_TOKEN}"; then
+# Check if SUPERVISOR_TOKEN env var is set (safely)
+if [ -n "${SUPERVISOR_TOKEN:-}" ]; then
     bashio::log.info "Using Supervisor Token"
     HA_TOKEN="${SUPERVISOR_TOKEN}"
 else
     bashio::log.error "SUPERVISOR_TOKEN is not set!"
-    # Fallback/Debug
     HA_TOKEN=""
 fi
 
