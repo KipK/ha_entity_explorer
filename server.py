@@ -365,12 +365,17 @@ def get_attribute_history(entity_id: str):
             
             values.append(val)
             
-            # Determine if numeric
+            # Determine if numeric (check non-null values)
             if is_numeric is None and val is not None:
                 is_numeric = isinstance(val, (int, float))
         
+        # If all values are null, assume numeric (treat as 0)
         if is_numeric is None:
-            is_numeric = False
+            is_numeric = True
+        
+        # Replace null values with 0 for numeric attributes
+        if is_numeric:
+            values = [v if v is not None else 0 for v in values]
         
         return jsonify({
             "key": key,
