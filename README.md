@@ -14,12 +14,14 @@ This is a Home Assistant Add-on Repository for **HA Entity Explorer**.
 - **Multi-language**: Available in English and French
 - **Entity Filtering**: Whitelist/blacklist entities for security
 
+[📚 Read full documentation](ha_entity_explorer/README.md)
+
 ## Screenshots
 
 <img width="1889" height="902" alt="image" src="https://github.com/user-attachments/assets/867d60c5-401a-46e5-855c-38ec1135cdff" />
 <img width="1884" height="899" alt="image" src="https://github.com/user-attachments/assets/eb786fba-ba12-4d98-acd4-8fd0ae89b594" />
 
-[📚 Read full documentation](ha_entity_explorer/README.md)
+
 
 ## Installation
 
