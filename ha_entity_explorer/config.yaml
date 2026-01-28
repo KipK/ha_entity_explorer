@@ -23,5 +23,8 @@ schema:
 ports:
   8050/tcp: 8050
 
-wants:
-  - "homeassistant"
+# API Access Permission
+homeassistant_api: true
+# Note: 'wants' is deprecated/legacy
+# wants:
+#   - "homeassistant"

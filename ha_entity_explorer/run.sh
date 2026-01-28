@@ -52,11 +52,36 @@ bashio::log.info "Using default internal HA URL"
 
 # Supervisor Token
 # Check if SUPERVISOR_TOKEN env var is set (safely)
-if [ -n "${SUPERVISOR_TOKEN:-}" ]; then
     bashio::log.info "Using Supervisor Token"
     HA_TOKEN="${SUPERVISOR_TOKEN}"
     bashio::log.info "Token length: ${#HA_TOKEN}"
     bashio::log.info "Token start: ${HA_TOKEN:0:10}..."
+
+    # Validating Token and Detecting URL
+    bashio::log.info "Testing/Detecting API URL via Curl..."
+    
+    # Try Standard Proxy (http://supervisor/core)
+    curl -v -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${HA_TOKEN}" -H "Content-Type: application/json" http://supervisor/core/api/ > /tmp/curl_status_core
+    CORE_STATUS=$(cat /tmp/curl_status_core)
+    
+    # Try Direct Supervisor (http://supervisor) - User suggestion
+    curl -v -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${HA_TOKEN}" -H "Content-Type: application/json" http://supervisor/api/ > /tmp/curl_status_direct
+    DIRECT_STATUS=$(cat /tmp/curl_status_direct)
+    
+    bashio::log.info "Status - Core: ${CORE_STATUS}, Direct: ${DIRECT_STATUS}"
+    
+    if [ "${CORE_STATUS}" == "200" ]; then
+        bashio::log.info "Using Standard Proxy: http://supervisor/core"
+        HA_URL="http://supervisor/core"
+    elif [ "${DIRECT_STATUS}" == "200" ] || [ "${DIRECT_STATUS}" == "405" ]; then
+        # 405 Method Not Allowed implies endpoint exists
+        bashio::log.info "Using Direct Supervisor: http://supervisor"
+        HA_URL="http://supervisor"
+    else
+        bashio::log.warning "Both endpoints failed authentication or check. Defaulting to http://supervisor/core"
+        HA_URL="http://supervisor/core"
+    fi
+
 else
     bashio::log.error "SUPERVISOR_TOKEN is not set!"
     HA_TOKEN=""
