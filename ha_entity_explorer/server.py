@@ -304,7 +304,11 @@ def list_entities():
         return jsonify(filtered)
         
     except HomeAssistantAPIError as e:
+        print(f"Error listing entities: {e}")
         return jsonify({"error": e.message}), 500
+    except Exception as e:
+        print(f"Unexpected error listing entities: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/history/<path:entity_id>')
