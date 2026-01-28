@@ -8,6 +8,7 @@ A standalone web application to explore and visualize the history of any Home As
 - **Interactive Charts**: Zoom, pan, and explore entity history with ECharts
 - **Attribute Explorer**: Click on chart points to view all entity attributes
 - **Custom Date Range**: Select the time period you want to analyze
+- **Data Export**: Export entity or attribute history to JSON for external analysis
 - **Multi-language**: Available in English and French
 - **Entity Filtering**: Whitelist/blacklist entities for security
 
@@ -77,6 +78,15 @@ To protect against brute-force attacks, the application implements rate limiting
 - **Storage**: Banned IPs are stored in `ip_bans.yaml` (automatically created if not present).
 - **Safe IPs**: Localhost (`127.0.0.1`, `::1`) are always safe. You can add more via `safe_ips` in `config.yaml`.
 - **Unban**: To unban an IP, manually remove it from `ip_bans.yaml` (the server reads this file on every request, so no restart is needed).
+
+### Entity Filtering
+You can restrict which entities are visible in the explorer:
+
+- **whitelist**: List of entity IDs. If defined, **ONLY** these entities will be accessible.
+- **blacklist**: List of entity IDs to exclude.
+- **Rules**:
+    - If `whitelist` is used, `blacklist` is ignored.
+    - If both are empty, all entities are visible.
 
 ## Configuration Options
 
