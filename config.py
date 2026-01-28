@@ -85,11 +85,11 @@ def load_config(config_path: Optional[str] = None) -> Config:
     """
     if config_path is None:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(base_dir, "config.yaml")
+        config_path = os.path.join(base_dir, "app_config.yaml")
     
     if not os.path.exists(config_path):
         print(f"Error: Configuration file not found: {config_path}")
-        print("Please copy config.yaml.example to config.yaml and fill in your values.")
+        print("Please copy app_config.yaml.example to app_config.yaml and fill in your values.")
         sys.exit(1)
     
     try:

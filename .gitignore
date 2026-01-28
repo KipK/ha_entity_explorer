@@ -1,5 +1,8 @@
 # Local configuration (contains API key)
-config.yaml
+# config.yaml is now the Add-on metadata and should be committed
+app_config.yaml
+users.yaml
+ip_bans.yaml
 
 # Python cache
 __pycache__/
@@ -21,8 +24,3 @@ ENV/
 # OS files
 .DS_Store
 Thumbs.db
-
-# Old data folder (no longer used with HA API)
-data/
-users.yaml
-ip_bans.yaml

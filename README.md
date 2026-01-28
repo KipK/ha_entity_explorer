@@ -43,6 +43,32 @@ app:
   language: "en"  # or "fr"
 ```
 
+## Installation as Home Assistant Add-on
+
+To run this directly within Home Assistant:
+
+1.  **Preparation**:
+    - Ensure you have the `Advanced Mode` enabled in your User Profile in Home Assistant.
+
+2.  **Local Installation**:
+    - Copy this entire folder to your Home Assistant `/addons/` directory. You should end up with a structure like `/addons/ha_entity_explorer/`.
+    - Go to Settings -> Add-ons -> Add-on Store.
+    - Click "Check for new updates" (top right menu).
+    - You should see "HA Entity Explorer" under "Local Add-ons".
+    - Click on it and Install.
+
+3.  **Configuration**:
+    - In the configuration tab, you can set:
+        - `log_level`: Level of logging details.
+        - `language`: Interface language (fr/en).
+    - Start the Add-on.
+    - Click "Open Web UI".
+
+## Requirements (Manual Run)
+
+- Python 3.9+
+- Home Assistant instance reachable via network
+- Long-Lived Access Token from Home Assistant
 To generate a long-lived access token:
 1. Go to your Home Assistant profile
 2. Scroll to "Long-Lived Access Tokens"
