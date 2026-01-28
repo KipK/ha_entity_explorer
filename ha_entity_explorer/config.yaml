@@ -15,7 +15,7 @@ options:
   log_level: info
   ha_url: ""
   ha_token: ""
-  language: "fr"
+  language: "en"
   default_history_days: 4
   secret_key: "change_me_in_production"
 schema:
@@ -27,6 +27,6 @@ schema:
   secret_key: str
 ports:
   5000/tcp: 5000
-image: "ha-entity-explorer-{arch}"
+
 wants:
   - "homeassistant"
