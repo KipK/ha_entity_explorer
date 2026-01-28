@@ -11,40 +11,27 @@ bashio::log.info "Generating configuration..."
 # Get values from options or use defaults/environment
 # HA Add-ons automatically expose SUPERVISOR_TOKEN and HASSIO_URL if mapped?
 # Actually, the options.json is at /data/options.json
-# But using bashio to read options is easier.
-
-HA_URL=$(bashio::config 'ha_url' || echo '')
-HA_TOKEN=$(bashio::config 'ha_token' || echo '')
+# Get values from options
 LOG_LEVEL=$(bashio::config 'log_level')
 LANGUAGE=$(bashio::config 'language')
 DEFAULT_HISTORY_DAYS=$(bashio::config 'default_history_days')
 
-# Generate a random secret key for Flask sessions
-# This ensures security without user intervention
-if command -v openssl >/dev/null 2>&1; then
-    SECRET_KEY=$(openssl rand -hex 32)
-else
-    # Fallback if openssl not available
-    SECRET_KEY=$(date +%s%N | sha256sum | base64 | head -c 32)
-fi
-bashio::log.info "Generated session secret key"
+# HA URL and TOKEN are no longer in options, so we default to Supervisor
+# We used to check bashio::config but it errors if keys are missing from options.json
 
-# If HA_URL is empty, try to derive from environment or default internal URL
-if [ -n "${HA_URL}" ]; then
-    bashio::log.info "Using configured HA URL: ${HA_URL}"
-else
-    # Default internal URL
-    bashio::log.info "Using default internal HA URL"
-    # The Supervisor proxy for Home Assistant Core API
-    HA_URL="http://supervisor/core"
-fi
+# Default internal URL
+HA_URL="http://supervisor/core"
+bashio::log.info "Using default internal HA URL"
 
-# If HA_TOKEN is empty, we might need to use the Supervisor token
-if [ -n "${HA_TOKEN}" ]; then
-    bashio::log.info "Using configured HA Token"
-else
+# Supervisor Token
+# Check if SUPERVISOR_TOKEN env var is set
+if bashio::var.has_value "${SUPERVISOR_TOKEN}"; then
     bashio::log.info "Using Supervisor Token"
     HA_TOKEN="${SUPERVISOR_TOKEN}"
+else
+    bashio::log.error "SUPERVISOR_TOKEN is not set!"
+    # Fallback/Debug
+    HA_TOKEN=""
 fi
 
 # Write config yaml
