@@ -145,10 +145,17 @@ import json
 import os
 
 data = os.environ.get('USERS_JSON', '')
-users_list = json.loads(data) if data else []
+users_input = json.loads(data) if data else []
 users_dict = {}
 
+# Normalize to list if it's a single dict (edge case or config quirk)
+if isinstance(users_input, dict):
+    users_list = [users_input]
+else:
+    users_list = users_input
+
 for user in users_list:
+    if not isinstance(user, dict): continue
     username = user.get('username')
     password = user.get('password')
     if username and password:
