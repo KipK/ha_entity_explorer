@@ -102,6 +102,14 @@ import yaml
 import json
 import os
 
+# Helper to safely load json or return list
+def safe_load(x):
+    if not x: return []
+    try:
+        return json.loads(x)
+    except:
+        return []
+
 config = {
     'home_assistant': {
         'url': '${HA_URL}',
@@ -114,9 +122,9 @@ config = {
         'port': 8050,
         'secret_key': '${SECRET_KEY}'
     },
-    'whitelist': json.loads('${WHITELIST_YAML}'),
-    'blacklist': json.loads('${BLACKLIST_YAML}'),
-    'safe_ips': json.loads('${SAFE_IPS_YAML}') + ['172.30.32.1', '172.30.32.2']
+    'whitelist': safe_load('${WHITELIST_YAML}'),
+    'blacklist': safe_load('${BLACKLIST_YAML}'),
+    'safe_ips': safe_load('${SAFE_IPS_YAML}') + ['172.30.32.1', '172.30.32.2']
 }
 
 with open('${CONFIG_PATH}', 'w') as f:
@@ -129,8 +137,10 @@ USERS_JSON=$(bashio::config 'auth_users')
 python3 -c "
 import yaml
 import json
+import os
 
-users_list = json.loads('${USERS_JSON}')
+DATA = '${USERS_JSON}'
+users_list = json.loads(DATA) if DATA else []
 users_dict = {}
 
 for user in users_list:
