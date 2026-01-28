@@ -496,13 +496,13 @@ def get_attribute_history(entity_id: str):
             if is_numeric is None and val is not None:
                 is_numeric = isinstance(val, (int, float))
         
-        # If all values are null, assume numeric (treat as 0)
+        # If all values are null, assume numeric
         if is_numeric is None:
             is_numeric = True
         
-        # Replace null values with 0 for numeric attributes
-        if is_numeric:
-            values = [v if v is not None else 0 for v in values]
+        # Do NOT replace null values with 0. ECharts handles nulls as gaps/breaks in the line.
+        # if is_numeric:
+        #     values = [v if v is not None else 0 for v in values]
         
         return jsonify({
             "key": key,
