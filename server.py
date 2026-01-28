@@ -38,6 +38,49 @@ ha_api = HomeAssistantAPI(
 # Cache for processed history data
 history_cache = {}
 
+# Authentication setup
+import yaml
+from functools import wraps
+from flask import session, redirect, url_for, flash
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+app.secret_key = config.app.secret_key or 'dev-secret-key-change-me'
+
+# Apply ProxyFix to handle X-Forwarded headers from Reverse Proxy
+# This ensures request.url matches the external URL (HTTPS) and not the internal one (HTTP)
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+)
+
+def load_users():
+    """Load users from users.yaml"""
+    try:
+        with open('users.yaml', 'r') as f:
+            data = yaml.safe_load(f)
+            return data.get('users', {}) if data else {}
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        print(f"Error loading users.yaml: {e}")
+        return {}
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        users = load_users()
+        
+        # If no users configured, disable auth
+        if not users:
+            return f(*args, **kwargs)
+            
+        # 1. Check for Session
+        if 'user' in session:
+            return f(*args, **kwargs)
+            
+        # 2. Not authenticated
+        return redirect(url_for('login', next=request.url))
+    return decorated_function
+
 
 def validate_entity_access(entity_id: str):
     """
@@ -150,19 +193,46 @@ def process_generic_history(history_data: list, entity_id: str) -> dict:
 # Routes
 # =============================================================================
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page."""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        users = load_users()
+        
+        if username in users and users[username] == password:
+            session['user'] = username
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            return render_template('login.html', error="Invalid username or password")
+            
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout user."""
+    session.pop('user', None)
+    return redirect(url_for('index'))
+
 @app.route('/')
+@login_required
 def index():
     """Serve the main application page."""
     return render_template('index.html')
 
 
 @app.route('/api/config')
+@login_required
 def get_app_config():
     """Return public configuration for frontend (never expose API token)."""
     return jsonify(config.get_public_config())
 
 
 @app.route('/api/entities')
+@login_required
 def list_entities():
     """
     List all available entities from Home Assistant.
@@ -184,6 +254,7 @@ def list_entities():
 
 
 @app.route('/api/history/<path:entity_id>')
+@login_required
 def get_entity_history(entity_id: str):
     """
     Get history for a specific entity.
@@ -250,6 +321,7 @@ def get_entity_history(entity_id: str):
 
 
 @app.route('/api/details/<path:entity_id>')
+@login_required
 def get_entity_details(entity_id: str):
     """
     Get details (all attributes) for an entity at a specific timestamp.
@@ -297,6 +369,7 @@ def get_entity_details(entity_id: str):
 
 
 @app.route('/api/attribute-history/<path:entity_id>')
+@login_required
 def get_attribute_history(entity_id: str):
     """
     Get history for a specific attribute of an entity.
@@ -391,6 +464,7 @@ def get_attribute_history(entity_id: str):
 
 
 @app.route('/api/history-range/<path:entity_id>')
+@login_required
 def get_history_range(entity_id: str):
     """
     Get the available history date range for an entity.
@@ -415,6 +489,7 @@ def get_history_range(entity_id: str):
 
 
 @app.route('/api/export/entity/<path:entity_id>')
+@login_required
 def export_entity_history(entity_id: str):
     """
     Export full history for an entity as JSON.
@@ -468,6 +543,7 @@ def export_entity_history(entity_id: str):
 
 
 @app.route('/api/export/attribute/<path:entity_id>')
+@login_required
 def export_attribute_history(entity_id: str):
     """
     Export specific attribute history as JSON.

@@ -1,0 +1,7 @@
+# Users configuration
+# Format: username: password
+# If this file is empty or contains no users, authentication will be disabled.
+
+users:
+  user1: password1
+  user2: password2

@@ -55,6 +55,19 @@ python server.py
 
 Open your browser at: http://localhost:5000
 
+## Authentication
+
+The application supports two methods of authentication:
+
+1.  **Local Authentication**:
+    Create a `users.yaml` file in the application directory (see `users.yaml.example`):
+    ```yaml
+    users:
+      myuser: mypassword
+      admin: admin123
+    ```
+    If `users.yaml` is not present or contains no users, authentication is **disabled**.
+
 ## Configuration Options
 
 | Option | Description | Default |

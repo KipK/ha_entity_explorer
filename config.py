@@ -24,6 +24,7 @@ class AppConfig:
     default_history_days: int = 4
     host: str = "0.0.0.0"
     port: int = 5000
+    secret_key: str = None
 
 
 @dataclass
@@ -118,7 +119,8 @@ def load_config(config_path: Optional[str] = None) -> Config:
         language=app_data.get("language", "fr"),
         default_history_days=app_data.get("default_history_days", 4),
         host=app_data.get("host", "0.0.0.0"),
-        port=app_data.get("port", 5000)
+        port=app_data.get("port", 5000),
+        secret_key=app_data.get("secret_key")
     )
     
     # Validate language
