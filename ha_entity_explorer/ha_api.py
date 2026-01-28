@@ -34,6 +34,8 @@ class HomeAssistantAPI:
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
+        masked_token = f"...{token[-4:]}" if token and len(token) > 4 else "None/Short"
+        print(f"DEBUG: Initialized client with token: {masked_token}")
         self._states_cache = None
         self._states_cache_time = None
         self._cache_ttl = 60  # Cache states for 60 seconds
