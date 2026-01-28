@@ -52,6 +52,12 @@ let mainChartZoomState = { start: 0, end: 100 };  // Track main chart zoom
 // =============================================================================
 
 async function init() {
+    // Set axios base URL for Ingress
+    if (window.APP_ROOT) {
+        axios.defaults.baseURL = window.APP_ROOT;
+        console.log('Ingress: Set Axios config baseURL to', window.APP_ROOT);
+    }
+
     // Load app configuration
     await loadConfig();
 
@@ -76,7 +82,8 @@ async function init() {
 
 async function loadConfig() {
     try {
-        const response = await axios.get('/api/config');
+        // Use relative path (axios baseURL handles the prefix)
+        const response = await axios.get('api/config');
         appConfig = response.data;
         console.log('Config loaded:', appConfig);
 
@@ -134,7 +141,7 @@ async function loadEntities() {
         const loadingText = window.i18n ? window.i18n.t('loadingEntities') : 'Loading entities...';
         entityDropdown.innerHTML = `<div class="loading">${loadingText}</div>`;
 
-        const response = await axios.get('/api/entities');
+        const response = await axios.get('api/entities');
         entities = response.data;
 
         console.log(`Loaded ${entities.length} entities`);
@@ -244,7 +251,7 @@ async function loadEntityHistory() {
             end: dateRange.end.toISOString()
         });
 
-        const response = await axios.get(`/api/history/${currentEntityId}?${params}`);
+        const response = await axios.get(`api/history/${currentEntityId}?${params}`);
         currentHistoryData = response.data;
 
         // Update date display
@@ -559,7 +566,7 @@ async function fetchDetails(timestamp) {
         if (!currentEntityId) return;
 
         try {
-            const response = await axios.get(`/api/details/${currentEntityId}`, {
+            const response = await axios.get(`api/details/${currentEntityId}`, {
                 params: { timestamp }
             });
             currentDetailsData = response.data;
@@ -721,7 +728,7 @@ async function showAttributeHistory(key) {
             end: dateRange.end.toISOString()
         });
 
-        const response = await axios.get(`/api/attribute-history/${currentEntityId}?${params}`);
+        const response = await axios.get(`api/attribute-history/${currentEntityId}?${params}`);
         const data = response.data;
 
         historyLoading.classList.add('d-none');
@@ -874,15 +881,20 @@ function exportData(type, entityId, start, end, key = null) {
     }
 
     let url;
+    const baseUrl = window.APP_ROOT || '';
+
+    // Construct base API URL
+    const apiBase = baseUrl ? `${baseUrl}/api` : 'api';
+
     const params = new URLSearchParams({
         start: start.toISOString(),
         end: end.toISOString()
     });
 
     if (type === 'entity') {
-        url = `/api/export/entity/${entityId}`;
+        url = `${apiBase}/export/entity/${entityId}`;
     } else if (type === 'attribute') {
-        url = `/api/export/attribute/${entityId}`;
+        url = `${apiBase}/export/attribute/${entityId}`;
         if (key) params.append('key', key);
     } else {
         return;

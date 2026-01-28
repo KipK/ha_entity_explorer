@@ -22,6 +22,10 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- Flatpickr -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        // Ingress support: inject the script root as base URL
+        window.APP_ROOT = "{{ request.script_root }}";
+    </script>
 </head>
 
 <body class="bg-dark text-light">
