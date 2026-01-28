@@ -11,6 +11,10 @@ A standalone web application to explore and visualize the history of any Home As
 - **Multi-language**: Available in English and French
 - **Entity Filtering**: Whitelist/blacklist entities for security
 
+<img width="1889" height="902" alt="image" src="https://github.com/user-attachments/assets/867d60c5-401a-46e5-855c-38ec1135cdff" />
+<img width="1884" height="899" alt="image" src="https://github.com/user-attachments/assets/eb786fba-ba12-4d98-acd4-8fd0ae89b594" />
+
+
 ## Quick Start
 
 ### 1. Install dependencies
