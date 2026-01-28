@@ -1,0 +1,53 @@
+name: Build Add-on
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "[0-9]*"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Update version
+        run: |
+          version="${{ github.ref_name }}"
+          if [[ "${version}" == v* ]]; then
+            version="${version:1}"
+          fi
+
+          if ! grep -q "version: [\"\']\?${version}[\"\']\?" ha_entity_explorer/config.yaml; then
+            echo "Updating version to $version"
+            sed -i "s/version: .*/version: \"${version}\"/" ha_entity_explorer/config.yaml
+          else
+            echo "Version is already $version"
+          fi
+
+      - name: Debug DockerHub login
+        run: |
+          echo "Testing Docker login..."
+          docker info | grep -i username || echo "Not logged in to any registry"
+          echo "DOCKERHUB_USERNAME secret is set: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
+
+      - name: Build
+        uses: home-assistant/builder@2025.11.0
+        with:
+          args: |
+            --aarch64 \
+            --amd64 \
+            --target ha_entity_explorer \
+            --image "ha-entity-explorer-{arch}" \
+            --docker-hub "${{ secrets.DOCKERHUB_USERNAME }}" \
+            --no-cosign-verify \
+            --addon

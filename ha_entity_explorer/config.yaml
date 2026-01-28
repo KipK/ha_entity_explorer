@@ -1,12 +1,12 @@
 name: "HA Entity Explorer"
-version: "1.0.0"
+version: "1.0.1"
 slug: "ha_entity_explorer"
 description: "Explore and visualize history of any Home Assistant entity."
 url: "https://github.com/yourusername/ha_entity_explorer"
+image: "kipk/ha-entity-explorer-{arch}"
 arch:
   - aarch64
   - amd64
-  - armv7
 startup: application
 boot: auto
 init: false
