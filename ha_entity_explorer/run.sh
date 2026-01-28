@@ -116,6 +116,10 @@ def safe_load(json_str):
     try:
         return json.loads(json_str)
     except:
+        # Fallback: if it's not valid JSON, treat it as a single item string
+        # This handles cases where bashio returns a raw string for a single list item
+        if json_str and isinstance(json_str, str):
+            return [json_str]
         return []
 
 config = {
