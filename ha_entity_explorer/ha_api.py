@@ -29,32 +29,19 @@ class HomeAssistantAPI:
             token: Long-lived access token
         """
         self.base_url = url.rstrip('/')
-        self.token = token
+        self.token = token.strip()
         self.headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
         }
-        masked_token = f"...{token[-4:]}" if token and len(token) > 4 else "None/Short"
+        masked_token = f"...{self.token[-4:]}" if self.token and len(self.token) > 4 else "None/Short"
         print(f"DEBUG: Initialized client with token: {masked_token}")
         self._states_cache = None
         self._states_cache_time = None
         self._cache_ttl = 60  # Cache states for 60 seconds
     
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
-        """
-        Make a request to the HA API.
-        
-        Args:
-            method: HTTP method (GET, POST, etc.)
-            endpoint: API endpoint (e.g., '/api/states')
-            **kwargs: Additional arguments for requests
-            
-        Returns:
-            Parsed JSON response
-            
-        Raises:
-            HomeAssistantAPIError: If request fails
-        """
+        # ... (omitted docstring) ...
         # Helper to join URL parts safely, whether they have slashes or not
         # This is needed because urljoin discards path components of base_url if endpoint starts with /
         # which breaks when using the Supervisor proxy at http://supervisor/core
@@ -73,12 +60,14 @@ class HomeAssistantAPI:
             )
             
             if response.status_code == 401:
+                print(f"DEBUG: 401 Response: {response.text}")
                 raise HomeAssistantAPIError(
                     "Authentication failed. Check your API token.", 
                     status_code=401
                 )
-            
+             
             if response.status_code == 404:
+                print(f"DEBUG: 404 Response: {response.text}")
                 raise HomeAssistantAPIError(
                     f"Endpoint not found: {endpoint}", 
                     status_code=404
