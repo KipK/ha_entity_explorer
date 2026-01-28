@@ -20,7 +20,7 @@ schema:
   language: list(fr|en)
   default_history_days: int
 ports:
-  5000/tcp: 5000
+  8050/tcp: 8050
 
 wants:
   - "homeassistant"

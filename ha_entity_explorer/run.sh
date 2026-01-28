@@ -57,7 +57,7 @@ app:
   language: "${LANGUAGE}"
   default_history_days: ${DEFAULT_HISTORY_DAYS}
   host: "0.0.0.0"
-  port: 5000
+  port: 8050
   secret_key: "${SECRET_KEY}"
 
 whitelist: []
