@@ -159,9 +159,9 @@ def load_config(config_path: Optional[str] = None) -> Config:
     print(f"  Language: {app_config.language}")
     print(f"  Default history days: {app_config.default_history_days}")
     if whitelist:
-        print(f"  Whitelist: {len(whitelist)} rules: {whitelist}")
+        print(f"  Whitelist: {len(whitelist)} rules")
     if blacklist:
-        print(f"  Blacklist: {len(blacklist)} rules: {blacklist}")
+        print(f"  Blacklist: {len(blacklist)} rules")
     if safe_ips:
         print(f"  Safe IPs: {len(safe_ips)} addresses")
     

@@ -43,10 +43,6 @@ WHITELIST_YAML=$(bashio::config 'whitelist')
 BLACKLIST_YAML=$(bashio::config 'blacklist')
 SAFE_IPS_YAML=$(bashio::config 'safe_ips')
 
-bashio::log.info "DEBUG: Raw Whitelist: '${WHITELIST_YAML}'"
-bashio::log.info "DEBUG: Raw Blacklist: '${BLACKLIST_YAML}'"
-bashio::log.info "DEBUG: Raw Safe IPs: '${SAFE_IPS_YAML}'"
-
 # Generate a random secret key for Flask sessions
 # This ensures security without user intervention
 if command -v openssl >/dev/null 2>&1; then
@@ -67,7 +63,6 @@ if [ -n "${SUPERVISOR_TOKEN:-}" ]; then
     bashio::log.info "Using Supervisor Token"
     HA_TOKEN="${SUPERVISOR_TOKEN}"
     bashio::log.info "Token length: ${#HA_TOKEN}"
-    bashio::log.info "Token start: ${HA_TOKEN:0:10}..."
 
     # Validating Token and Detecting URL
     bashio::log.info "Testing/Detecting API URL via Curl..."
@@ -76,9 +71,13 @@ if [ -n "${SUPERVISOR_TOKEN:-}" ]; then
     curl -v -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${HA_TOKEN}" -H "Content-Type: application/json" http://supervisor/core/api/ > /tmp/curl_status_core
     CORE_STATUS=$(cat /tmp/curl_status_core)
     
-    # Try Direct Supervisor (http://supervisor) - User suggestion
-    curl -v -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${HA_TOKEN}" -H "Content-Type: application/json" http://supervisor/api/ > /tmp/curl_status_direct
-    DIRECT_STATUS=$(cat /tmp/curl_status_direct)
+    DIRECT_STATUS="skipped"
+    
+    # Only try Direct Supervisor if Core failed (to avoid 403 warnings in Supervisor logs)
+    if [ "${CORE_STATUS}" != "200" ]; then
+        curl -v -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${HA_TOKEN}" -H "Content-Type: application/json" http://supervisor/api/ > /tmp/curl_status_direct
+        DIRECT_STATUS=$(cat /tmp/curl_status_direct)
+    fi
     
     bashio::log.info "Status - Core: ${CORE_STATUS}, Direct: ${DIRECT_STATUS}"
     
