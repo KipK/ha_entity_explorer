@@ -311,7 +311,19 @@ function renderClimateChart(data) {
         backgroundColor: '#1e1e1e',
         tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'cross' }
+            axisPointer: { type: 'cross' },
+            formatter: function (params) {
+                if (!params || params.length === 0) return '';
+                const ts = params[0].axisValue;
+                const localTime = new Date(ts).toLocaleString();
+                let result = `<strong>${localTime}</strong><br/>`;
+                params.forEach(p => {
+                    if (p.value !== null && p.value !== undefined) {
+                        result += `${p.marker} ${p.seriesName}: <strong>${typeof p.value === 'number' ? p.value.toFixed(1) : p.value}</strong><br/>`;
+                    }
+                });
+                return result;
+            }
         },
         legend: {
             data: [labels.interior, labels.setpoint, labels.exterior, labels.heating],
@@ -399,7 +411,19 @@ function renderNumericChart(data) {
         backgroundColor: '#1e1e1e',
         tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'cross' }
+            axisPointer: { type: 'cross' },
+            formatter: function (params) {
+                if (!params || params.length === 0) return '';
+                const ts = params[0].axisValue;
+                const localTime = new Date(ts).toLocaleString();
+                let result = `<strong>${localTime}</strong><br/>`;
+                params.forEach(p => {
+                    if (p.value !== null && p.value !== undefined) {
+                        result += `${p.marker} ${p.seriesName}: <strong>${typeof p.value === 'number' ? p.value.toFixed(2) : p.value}</strong><br/>`;
+                    }
+                });
+                return result;
+            }
         },
         grid: {
             left: '3%',
@@ -726,7 +750,19 @@ function renderHistoryChart(data) {
         backgroundColor: 'transparent',
         tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'cross' }
+            axisPointer: { type: 'cross' },
+            formatter: function (params) {
+                if (!params || params.length === 0) return '';
+                const ts = params[0].axisValue;
+                const localTime = new Date(ts).toLocaleString();
+                let result = `<strong>${localTime}</strong><br/>`;
+                params.forEach(p => {
+                    if (p.value !== null && p.value !== undefined) {
+                        result += `${p.marker} ${p.seriesName}: <strong>${typeof p.value === 'number' ? p.value.toFixed(4) : p.value}</strong><br/>`;
+                    }
+                });
+                return result;
+            }
         },
         grid: {
             left: '3%', right: '4%', bottom: '15%', containLabel: true
