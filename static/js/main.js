@@ -45,6 +45,7 @@ let endPicker = null;
 // ECharts instances
 let myChart = null;
 let historyChart = null;
+let mainChartZoomState = { start: 0, end: 100 };  // Track main chart zoom
 
 // =============================================================================
 // Initialization
@@ -669,6 +670,18 @@ historyModalEl.addEventListener('shown.bs.modal', () => {
 async function showAttributeHistory(key) {
     if (!currentEntityId) return;
 
+    // Capture the current zoom state from the main chart
+    if (myChart && currentHistoryData && currentHistoryData.timestamps) {
+        try {
+            const zoom = myChart.getOption().dataZoom[0];
+            mainChartZoomState = { start: zoom.start, end: zoom.end };
+        } catch (e) {
+            mainChartZoomState = { start: 0, end: 100 };
+        }
+    } else {
+        mainChartZoomState = { start: 0, end: 100 };
+    }
+
     const t = window.i18n ? window.i18n.t : (k) => k;
     historyTitle.textContent = `${t('history')}: ${key}`;
     historyChartDom.classList.add('d-none');
@@ -732,8 +745,8 @@ function renderHistoryChart(data) {
             splitLine: { show: true, lineStyle: { color: '#333' } }
         },
         dataZoom: [
-            { type: 'inside', start: 0, end: 100 },
-            { start: 0, end: 100 }
+            { type: 'inside', start: mainChartZoomState.start, end: mainChartZoomState.end },
+            { start: mainChartZoomState.start, end: mainChartZoomState.end }
         ],
         series: [{
             name: data.key,
