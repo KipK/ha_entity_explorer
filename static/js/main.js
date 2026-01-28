@@ -60,6 +60,9 @@ async function init() {
     // Set default date range
     setDefaultDateRange();
 
+    // Display the default date range
+    updateDateRangeDisplay();
+
     // Load entities
     await loadEntities();
 
