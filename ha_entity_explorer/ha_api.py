@@ -60,6 +60,7 @@ class HomeAssistantAPI:
         path = endpoint.lstrip('/')
         url = f"{base}/{path}"
         
+        print(f"DEBUG: Requesting {method} {url}")
         try:
             response = requests.request(
                 method, 

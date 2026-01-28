@@ -86,4 +86,4 @@ bashio::log.info "Configuration generated."
 
 # Start application
 bashio::log.info "Starting Flask Application..."
-exec python3 server.py
+exec python3 -u server.py
