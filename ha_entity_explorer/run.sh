@@ -52,6 +52,7 @@ bashio::log.info "Using default internal HA URL"
 
 # Supervisor Token
 # Check if SUPERVISOR_TOKEN env var is set (safely)
+if [ -n "${SUPERVISOR_TOKEN:-}" ]; then
     bashio::log.info "Using Supervisor Token"
     HA_TOKEN="${SUPERVISOR_TOKEN}"
     bashio::log.info "Token length: ${#HA_TOKEN}"
