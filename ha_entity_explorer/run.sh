@@ -97,16 +97,20 @@ fi
 
 # Write config yaml
 # We use python to safely dump yaml to avoid issues
+export WHITELIST_JSON="${WHITELIST_YAML}"
+export BLACKLIST_JSON="${BLACKLIST_YAML}"
+export SAFE_IPS_JSON="${SAFE_IPS_YAML}"
+
 python3 -c "
 import yaml
 import json
 import os
 
 # Helper to safely load json or return list
-def safe_load(x):
-    if not x: return []
+def safe_load(json_str):
+    if not json_str: return []
     try:
-        return json.loads(x)
+        return json.loads(json_str)
     except:
         return []
 
@@ -122,9 +126,9 @@ config = {
         'port': 8050,
         'secret_key': '${SECRET_KEY}'
     },
-    'whitelist': safe_load('${WHITELIST_YAML}'),
-    'blacklist': safe_load('${BLACKLIST_YAML}'),
-    'safe_ips': safe_load('${SAFE_IPS_YAML}') + ['172.30.32.1', '172.30.32.2']
+    'whitelist': safe_load(os.environ.get('WHITELIST_JSON', '')),
+    'blacklist': safe_load(os.environ.get('BLACKLIST_JSON', '')),
+    'safe_ips': safe_load(os.environ.get('SAFE_IPS_JSON', '')) + ['172.30.32.1', '172.30.32.2']
 }
 
 with open('${CONFIG_PATH}', 'w') as f:
@@ -133,14 +137,15 @@ with open('${CONFIG_PATH}', 'w') as f:
 
 # Handle auth_users
 # Process users and create users.yaml
-USERS_JSON=$(bashio::config 'auth_users')
+export USERS_JSON=$(bashio::config 'auth_users')
+
 python3 -c "
 import yaml
 import json
 import os
 
-DATA = '${USERS_JSON}'
-users_list = json.loads(DATA) if DATA else []
+data = os.environ.get('USERS_JSON', '')
+users_list = json.loads(data) if data else []
 users_dict = {}
 
 for user in users_list:
@@ -153,8 +158,7 @@ if users_dict:
     with open('users.yaml', 'w') as f:
         yaml.dump({'users': users_dict}, f)
 else:
-    # Create empty file or remove it
-    if hasattr(os, 'remove') and os.path.exists('users.yaml'):
+    if os.path.exists('users.yaml'):
        os.remove('users.yaml')
 "
 
