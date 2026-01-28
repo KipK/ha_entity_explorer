@@ -9,6 +9,7 @@ arch:
   - armv7
 startup: application
 boot: auto
+init: false
 map:
   - config:rw
 options:
