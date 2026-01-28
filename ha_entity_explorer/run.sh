@@ -43,6 +43,10 @@ WHITELIST_YAML=$(bashio::config 'whitelist')
 BLACKLIST_YAML=$(bashio::config 'blacklist')
 SAFE_IPS_YAML=$(bashio::config 'safe_ips')
 
+bashio::log.info "DEBUG: Raw Whitelist: '${WHITELIST_YAML}'"
+bashio::log.info "DEBUG: Raw Blacklist: '${BLACKLIST_YAML}'"
+bashio::log.info "DEBUG: Raw Safe IPs: '${SAFE_IPS_YAML}'"
+
 # Generate a random secret key for Flask sessions
 # This ensures security without user intervention
 if command -v openssl >/dev/null 2>&1; then
