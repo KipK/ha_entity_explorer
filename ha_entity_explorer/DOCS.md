@@ -47,7 +47,9 @@ app:
   language: "en"  # or "fr"
   default_history_days: 4
   host: "0.0.0.0"
+  host: "0.0.0.0"
   port: 5000
+  secret_key: "change_me_to_random_string" # Required for security
 
 # Security: IPs that will never be banned
 safe_ips:
@@ -88,7 +90,12 @@ The application supports authentication:
     users:
       myuser: mypassword
       admin: admin123
+    users:
+      myuser: mypassword
+      admin: admin123
     ```
+    On startup, plain text passwords will be automatically migrated to secure hashes.
+    
     If `users.yaml` is not present or contains no users, authentication is **disabled**.
 
 ## Security Features
@@ -120,6 +127,7 @@ You can restrict which entities are visible in the explorer:
 | `app.default_history_days` | Days of history to load | 4 |
 | `app.host` | Network interface | 0.0.0.0 |
 | `app.port` | Server port | 5000 |
+| `app.secret_key` | Secret for sessions | Required |
 | `whitelist` | Only show these entities | [] |
 | `blacklist` | Hide these entities | [] |
 | `safe_ips` | IPs exempt from banning (always includes localhost) | [] |

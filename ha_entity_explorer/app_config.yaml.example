@@ -30,6 +30,11 @@ app:
   # Port to listen on
   port: 5000
 
+  # Secret key for Flask sessions
+  # Required for production security. Use a long random string.
+  # Generate one with: openssl rand -hex 32
+  secret_key: "change_me_to_a_random_secret_string"
+
 # Entity Filtering (optional)
 # Use whitelist OR blacklist, not both. Whitelist takes precedence.
 

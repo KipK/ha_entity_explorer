@@ -15,6 +15,7 @@ A web application to explore and visualize history of any Home Assistant entity.
 
 from datetime import datetime, timedelta
 import ipaddress
+import os
 from flask import Flask, render_template, jsonify, request, abort
 from dateutil import parser
 
@@ -43,7 +44,7 @@ history_cache = {}
 import yaml
 from functools import wraps
 from flask import session, redirect, url_for, flash
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app.secret_key = config.app.secret_key
@@ -150,6 +151,41 @@ def load_users():
     except Exception as e:
         print(f"Error loading users.yaml: {e}")
         return {}
+
+def migrate_passwords():
+    """
+    Check users.yaml for plain text passwords and migrate them to hashes.
+    """
+    try:
+        if not os.path.exists('users.yaml'):
+            return
+
+        with open('users.yaml', 'r') as f:
+            data = yaml.safe_load(f)
+        
+        users = data.get('users', {}) if data else {}
+        if not users:
+            return
+
+        updated = False
+        new_users = {}
+
+        for username, password in users.items():
+            # Check if password is already hashed (simple heuristic)
+            if not password.startswith(('pbkdf2:', 'scrypt:', 'argon2:')):
+                print(f"Migrating password for user '{username}' to hash...")
+                new_users[username] = generate_password_hash(password)
+                updated = True
+            else:
+                new_users[username] = password
+        
+        if updated:
+            with open('users.yaml', 'w') as f:
+                yaml.dump({'users': new_users}, f)
+            print("Successfully migrated users.yaml to use hashed passwords.")
+            
+    except Exception as e:
+        print(f"Error migrating passwords: {e}")
 
 def login_required(f):
     @wraps(f)
@@ -725,6 +761,9 @@ def export_attribute_history(entity_id: str):
         return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
+    # Auto-migrate passwords if needed
+    migrate_passwords()
+
     # Test HA connection on startup
     print("Testing Home Assistant connection...")
     try:
