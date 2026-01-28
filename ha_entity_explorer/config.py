@@ -6,6 +6,7 @@ Handles loading and validation of config.yaml settings.
 import os
 import sys
 import yaml
+import fnmatch
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -40,6 +41,7 @@ class Config:
         """
         Check if an entity is allowed based on whitelist/blacklist rules.
         Whitelist takes precedence over blacklist.
+        Supports wildcards (e.g. 'climate.*').
         
         Args:
             entity_id: The entity ID to check (e.g., 'climate.living_room')
@@ -49,11 +51,16 @@ class Config:
         """
         # If whitelist is defined and non-empty, only allow those entities
         if self.whitelist:
-            return entity_id in self.whitelist
+            for pattern in self.whitelist:
+                if fnmatch.fnmatch(entity_id, pattern):
+                    return True
+            return False
         
         # If blacklist is defined, exclude those entities
         if self.blacklist:
-            return entity_id not in self.blacklist
+            for pattern in self.blacklist:
+                if fnmatch.fnmatch(entity_id, pattern):
+                    return False
         
         # No filtering, allow all
         return True
