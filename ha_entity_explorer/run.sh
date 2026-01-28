@@ -1,4 +1,24 @@
-#!/usr/bin/env bashio
+#!/bin/bash
+
+# Load S6 environment variables (if available)
+# This is required because S6 v3 might not export them to the service process by default
+if [ -d /var/run/s6/container_environment ]; then
+    for var in /var/run/s6/container_environment/*; do
+        [ -e "$var" ] || continue
+        key=$(basename "$var")
+        val=$(cat "$var")
+        export "$key"="$val"
+    done
+fi
+
+# Initialize Bashio
+if [ -f /usr/lib/bashio/bashio.sh ]; then
+    source /usr/lib/bashio/bashio.sh
+else
+    # Fallback/Debug if bashio not found
+    echo "ERROR: Bashio not found!"
+    exit 1
+fi
 
 # Define config path
 CONFIG_PATH="/app/app_config.yaml"
