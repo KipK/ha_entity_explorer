@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="ha_entity_explorer/icon.png" width="128" height="128" alt="HA Entity Explorer Logo">
+</p>
+
 # HA Entity Explorer Add-on Repository
 
 This is a Home Assistant Add-on Repository for **HA Entity Explorer**.

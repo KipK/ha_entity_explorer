@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" width="128" height="128" alt="HA Entity Explorer Logo">
+</p>
+
 # HA Entity Explorer - Technical Documentation
 
 This document contains detailed information for running **HA Entity Explorer** as a standalone Python application.

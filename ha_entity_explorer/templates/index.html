@@ -33,9 +33,11 @@
         <!-- Navbar -->
         <nav class="navbar navbar-dark bg-secondary mb-3">
             <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1" data-i18n="appTitle">
-                    <i class="bi bi-house-door"></i> HA Entity Explorer
-                </span>
+                <a class="navbar-brand d-flex align-items-center" href="#">
+                    <img src="{{ url_for('static', filename='img/icon_64.png') }}" alt="Logo" width="32" height="32"
+                        class="me-2">
+                    <span class="h4 mb-0" data-i18n="appTitle">HA Entity Explorer</span>
+                </a>
 
                 <!-- Entity Search -->
                 <div class="d-flex align-items-center flex-grow-1 mx-4">

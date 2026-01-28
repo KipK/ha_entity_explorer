@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" width="128" height="128" alt="HA Entity Explorer Logo">
+</p>
+
 # HA Entity Explorer
 
 **HA Entity Explorer** is a web application to explore and visualize the history of any Home Assistant entity and its attributes directly within your browser.
