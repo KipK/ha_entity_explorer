@@ -25,6 +25,9 @@ ports:
 
 # API Access Permission
 homeassistant_api: true
-# Note: 'wants' is deprecated/legacy
-# wants:
-#   - "homeassistant"
+
+# Ingress support
+ingress: true
+ingress_port: 8050
+panel_icon: "mdi:chart-timeline"
+panel_admin: false

@@ -46,6 +46,18 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 app.secret_key = config.app.secret_key or 'dev-secret-key-change-me'
 
+class IngressMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        script_name = environ.get('HTTP_X_INGRESS_PATH', '')
+        if script_name:
+            environ['SCRIPT_NAME'] = script_name
+        return self.app(environ, start_response)
+
+app.wsgi_app = IngressMiddleware(app.wsgi_app)
+
 # Apply ProxyFix to handle X-Forwarded headers from Reverse Proxy
 # This ensures request.url matches the external URL (HTTPS) and not the internal one (HTTP)
 app.wsgi_app = ProxyFix(
