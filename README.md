@@ -68,6 +68,15 @@ The application supports two methods of authentication:
     ```
     If `users.yaml` is not present or contains no users, authentication is **disabled**.
 
+## Security Features
+
+### IP Banning
+To protect against brute-force attacks, the application implements rate limiting:
+- **Limit**: 5 failed login attempts per IP address.
+- **Action**: The IP is strictly banned (403 Forbidden).
+- **Storage**: Banned IPs are stored in `ip_bans.yaml` (automatically created if not present).
+- **Unban**: To unban an IP, manually remove it from `ip_bans.yaml` (the server reads this file on every request, so no restart is needed).
+
 ## Configuration Options
 
 | Option | Description | Default |

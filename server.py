@@ -52,6 +52,34 @@ app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
 )
 
+# IP Banning state
+login_attempts = {}  # {ip: count}
+MAX_LOGIN_ATTEMPTS = 5
+
+def load_banned_ips():
+    """Load banned IPs from yaml"""
+    try:
+        with open('ip_bans.yaml', 'r') as f:
+            data = yaml.safe_load(f)
+            return data.get('banned_ips', []) if data else []
+    except FileNotFoundError:
+        return []
+    except Exception as e:
+        print(f"Error loading ip_bans.yaml: {e}")
+        return []
+
+def ban_ip(ip):
+    """Add IP to ban list"""
+    try:
+        bans = load_banned_ips()
+        if ip not in bans:
+            bans.append(ip)
+            with open('ip_bans.yaml', 'w') as f:
+                yaml.dump({'banned_ips': bans}, f)
+            print(f"BANNED IP: {ip}")
+    except Exception as e:
+        print(f"Error banning IP {ip}: {e}")
+
 def load_users():
     """Load users from users.yaml"""
     try:
@@ -196,6 +224,11 @@ def process_generic_history(history_data: list, entity_id: str) -> dict:
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Login page."""
+    # Check if IP is banned
+    client_ip = request.remote_addr
+    if client_ip in load_banned_ips():
+        abort(403, description="Your IP address has been banned due to too many failed login attempts.")
+
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -203,10 +236,24 @@ def login():
         users = load_users()
         
         if username in users and users[username] == password:
+            # Success: Reset attempts
+            if client_ip in login_attempts:
+                del login_attempts[client_ip]
+                
             session['user'] = username
             next_page = request.args.get('next')
             return redirect(next_page or url_for('index'))
         else:
+            # Failure: Increment attempts
+            attempts = login_attempts.get(client_ip, 0) + 1
+            login_attempts[client_ip] = attempts
+            
+            print(f"Failed login from {client_ip} (Attempt {attempts}/{MAX_LOGIN_ATTEMPTS})")
+            
+            if attempts >= MAX_LOGIN_ATTEMPTS:
+                ban_ip(client_ip)
+                abort(403, description="Too many failed attempts. Your IP has been banned.")
+            
             return render_template('login.html', error="Invalid username or password")
             
     return render_template('login.html')

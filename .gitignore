@@ -25,3 +25,4 @@ Thumbs.db
 # Old data folder (no longer used with HA API)
 data/
 users.yaml
+ip_bans.yaml
