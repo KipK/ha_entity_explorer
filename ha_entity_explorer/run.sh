@@ -38,10 +38,10 @@ LANGUAGE=$(bashio::config 'language')
 DEFAULT_HISTORY_DAYS=$(bashio::config 'default_history_days')
 
 # Process list configurations to YAML format for app_config.yaml
-# We use jq to convert the bashio config (json) to yaml format for these lists
-WHITELIST_YAML=$(bashio::config 'whitelist' | jq -r 'if length > 0 then . else [] end')
-BLACKLIST_YAML=$(bashio::config 'blacklist' | jq -r 'if length > 0 then . else [] end')
-SAFE_IPS_YAML=$(bashio::config 'safe_ips' | jq -r 'if length > 0 then . else [] end')
+# We pass the raw JSON from bashio directly to Python which handles parsing safely
+WHITELIST_YAML=$(bashio::config 'whitelist')
+BLACKLIST_YAML=$(bashio::config 'blacklist')
+SAFE_IPS_YAML=$(bashio::config 'safe_ips')
 
 # Generate a random secret key for Flask sessions
 # This ensures security without user intervention
