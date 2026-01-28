@@ -323,13 +323,7 @@ function renderClimateChart(data) {
             bottom: '15%',
             containLabel: true
         },
-        toolbox: {
-            feature: {
-                dataZoom: { yAxisIndex: 'none' },
-                restore: {},
-                saveAsImage: {}
-            }
-        },
+        toolbox: getCommonToolbox('entity', data),
         dataZoom: [
             { type: 'inside', start: 0, end: 100, filterMode: 'filter' },
             { start: 0, end: 100, filterMode: 'filter' }
@@ -412,13 +406,7 @@ function renderNumericChart(data) {
             bottom: '15%',
             containLabel: true
         },
-        toolbox: {
-            feature: {
-                dataZoom: { yAxisIndex: 'none' },
-                restore: {},
-                saveAsImage: {}
-            }
-        },
+        toolbox: getCommonToolbox('entity', data),
         dataZoom: [
             { type: 'inside', start: 0, end: 100 },
             { start: 0, end: 100 }
@@ -764,13 +752,24 @@ function renderHistoryChart(data) {
     };
 
     historyChart.setOption(option);
+
+    // Set toolbox separately to access data
+    historyChart.setOption({
+        toolbox: getCommonToolbox('attribute', data, data.key, historyChart)
+    });
 }
 
 function renderHistoryList(data) {
     historyListDom.classList.remove('d-none');
 
     const t = window.i18n ? window.i18n.t : (k) => k;
-    let html = '<table class="table table-dark table-sm table-striped">';
+    let html = `
+        <div class="d-flex justify-content-end mb-2">
+            <button class="btn btn-sm btn-outline-light" onclick="exportData('attribute', '${currentEntityId}', null, null, '${data.key}')">
+                <i class="bi bi-download"></i> ${t('exportData') || 'Export Data'}
+            </button>
+        </div>
+        <table class="table table-dark table-sm table-striped">`;
     html += `<thead><tr><th>${t('time')}</th><th>${t('value')}</th></tr></thead><tbody>`;
 
     data.timestamps.forEach((ts, index) => {
@@ -799,12 +798,12 @@ function applyDateRange() {
     const t = window.i18n ? window.i18n.t : (k) => k;
 
     if (!startDate || !endDate) {
-        alert(t('errorDateRange'));
+        alert('Please select both start and end dates.');
         return;
     }
 
-    if (startDate >= endDate) {
-        alert(t('errorDateOrder'));
+    if (startDate > endDate) {
+        alert('Start date must be before end date.');
         return;
     }
 
@@ -812,12 +811,107 @@ function applyDateRange() {
     dateRange.end = endDate;
 
     dateRangeModal.hide();
-
-    // Reload history with new date range
-    if (currentEntityId) {
-        loadEntityHistory();
-    }
+    loadEntityHistory();
 }
+
+// =============================================================================
+// Data Export
+// =============================================================================
+
+function exportData(type, entityId, start, end, key = null) {
+    if (!start || !end) {
+        start = dateRange.start;
+        end = dateRange.end;
+    }
+
+    let url;
+    const params = new URLSearchParams({
+        start: start.toISOString(),
+        end: end.toISOString()
+    });
+
+    if (type === 'entity') {
+        url = `/api/export/entity/${entityId}`;
+    } else if (type === 'attribute') {
+        url = `/api/export/attribute/${entityId}`;
+        if (key) params.append('key', key);
+    } else {
+        return;
+    }
+
+    // Trigger download
+    const downloadUrl = `${url}?${params.toString()}`;
+    window.open(downloadUrl, '_blank');
+}
+
+function getChartZoomRange(chartInstance, originalData) {
+    const zoom = chartInstance.getOption().dataZoom[0];
+
+    // If zoom is percent based (default)
+    let startPercent = zoom.start;
+    let endPercent = zoom.end;
+
+    // If not zoomed (0-100), return original range
+    if (startPercent === 0 && endPercent === 100) {
+        return {
+            start: new Date(originalData.timestamps[0]),
+            end: new Date(originalData.timestamps[originalData.timestamps.length - 1])
+        };
+    }
+
+    // Calculate zoomed range indices
+    const count = originalData.timestamps.length;
+    const startIndex = Math.floor(count * startPercent / 100);
+    const endIndex = Math.min(count - 1, Math.ceil(count * endPercent / 100));
+
+    return {
+        start: new Date(originalData.timestamps[startIndex]),
+        end: new Date(originalData.timestamps[endIndex])
+    };
+}
+
+function getCommonToolbox(type, data, attributeKey = null, chartInstance = null) {
+    const t = window.i18n ? window.i18n.t : (k) => k;
+
+    return {
+        feature: {
+            dataZoom: { yAxisIndex: 'none' },
+            restore: {},
+            saveAsImage: {},
+            myExportData: {
+                show: true,
+                title: t('exportData') || 'Export Data',
+                icon: 'path://M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M16,11V18.1L13.9,16L11.1,18.8L8.3,16L11.1,13.2L8.9,11H16Z',
+                onclick: function () {
+                    let start, end;
+
+                    // If we have a chart instance, try to get zoomed range
+                    // Note: myChart is the global main chart, historyChart is for attributes
+                    const currentChart = chartInstance || (type === 'attribute' ? historyChart : myChart);
+
+                    if (currentChart && data && data.timestamps && data.timestamps.length > 0) {
+                        try {
+                            const range = getChartZoomRange(currentChart, data);
+                            start = range.start;
+                            end = range.end;
+                        } catch (e) {
+                            console.error('Error calculating zoom range:', e);
+                            start = dateRange.start;
+                            end = dateRange.end;
+                        }
+                    } else {
+                        start = dateRange.start;
+                        end = dateRange.end;
+                    }
+
+                    exportData(type, data.entity_id || currentEntityId, start, end, attributeKey);
+                }
+            }
+        }
+    };
+}
+
+
 
 function applyQuickRange(days) {
     dateRange.end = new Date();
@@ -908,6 +1002,7 @@ window.navigateAttributesBack = navigateAttributesBack;
 window.navigateAttributesInto = navigateAttributesInto;
 window.navigateToPath = navigateToPath;
 window.showAttributeHistory = showAttributeHistory;
+window.exportData = exportData;
 
 // =============================================================================
 // Start

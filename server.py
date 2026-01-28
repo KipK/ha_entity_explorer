@@ -409,9 +409,129 @@ def get_history_range(entity_id: str):
         return jsonify({"error": e.message}), 500
 
 
-# =============================================================================
-# Main
-# =============================================================================
+@app.route('/api/export/entity/<path:entity_id>')
+def export_entity_history(entity_id: str):
+    """
+    Export full history for an entity as JSON.
+    
+    Query parameters:
+        start: ISO datetime string
+        end: ISO datetime string
+    """
+    # Security check
+    validate_entity_access(entity_id)
+    
+    start_str = request.args.get('start')
+    end_str = request.args.get('end')
+    
+    try:
+        # Determine time range
+        if start_str:
+            start_time = parser.parse(start_str)
+            end_time = parser.parse(end_str) if end_str else datetime.now()
+        else:
+            end_time = datetime.now()
+            start_time = end_time - timedelta(days=config.app.default_history_days)
+            
+        # Fetch full history (minimal_response=False to get attributes)
+        history = ha_api.get_history(
+            entity_id,
+            start_time=start_time,
+            end_time=end_time,
+            minimal_response=False
+        )
+        
+        # Add normalized timestamp field for consistency with attribute export
+        export_data = []
+        for entry in history:
+            ts = entry.get("last_changed") or entry.get("last_updated")
+            export_entry = {
+                "timestamp": ts,
+                **entry
+            }
+            export_data.append(export_entry)
+        
+        # Prepare filename
+        filename = f"history_{entity_id}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}.json"
+        
+        response = jsonify(export_data)
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        return response
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/api/export/attribute/<path:entity_id>')
+def export_attribute_history(entity_id: str):
+    """
+    Export specific attribute history as JSON.
+    
+    Query parameters:
+        key: Attribute key path
+        start: ISO datetime string
+        end: ISO datetime string
+    """
+    # Security check
+    validate_entity_access(entity_id)
+    
+    key = request.args.get('key')
+    if not key:
+        return jsonify({"error": "Missing key parameter"}), 400
+        
+    start_str = request.args.get('start')
+    end_str = request.args.get('end')
+    
+    try:
+        # Determine time range
+        if start_str:
+            start_time = parser.parse(start_str)
+            end_time = parser.parse(end_str) if end_str else datetime.now()
+        else:
+            end_time = datetime.now()
+            start_time = end_time - timedelta(days=config.app.default_history_days)
+            
+        # Fetch full history
+        history = ha_api.get_history(
+            entity_id,
+            start_time=start_time,
+            end_time=end_time,
+            minimal_response=False
+        )
+        
+        export_data = []
+        key_parts = key.split('.')
+        
+        for entry in history:
+            ts = entry.get("last_changed") or entry.get("last_updated")
+            if not ts:
+                continue
+                
+            # Navigate to value
+            attrs = entry.get("attributes", {})
+            val = attrs
+            
+            for part in key_parts:
+                if isinstance(val, dict):
+                    val = val.get(part)
+                else:
+                    val = None
+                    break
+            
+            if val is not None:
+                export_data.append({
+                    "timestamp": ts,
+                    "value": val
+                })
+        
+        filename = f"history_{entity_id}_{key}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}.json"
+        
+        response = jsonify(export_data)
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        return response
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
     # Test HA connection on startup
