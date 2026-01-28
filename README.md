@@ -1,6 +1,6 @@
 # HA Entity Explorer
 
-A standalone web application to explore and visualize the history of any Home Assistant entity.
+A standalone web application to explore and visualize the history of any Home Assistant entity and its attributes
 
 ## Features
 
