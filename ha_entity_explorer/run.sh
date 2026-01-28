@@ -150,6 +150,7 @@ python3 -c "
 import yaml
 import json
 import os
+from werkzeug.security import generate_password_hash
 
 data = os.environ.get('USERS_JSON', '')
 try:
@@ -177,7 +178,8 @@ for user in users_list:
     username = user.get('username')
     password = user.get('password')
     if username and password:
-        users_dict[username] = password
+        # SA-01: Hash passwords
+        users_dict[username] = generate_password_hash(password)
 
 if users_dict:
     with open('users.yaml', 'w') as f:

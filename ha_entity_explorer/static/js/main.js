@@ -638,7 +638,7 @@ function displayAttributes(data, path) {
             const fullPath = [...path, key].join('.');
             html += `
                 <tr class="clickable-row" onclick="showAttributeHistory('${fullPath}')">
-                    <td>${key}</td>
+                    <td>${escapeHtml(key)}</td>
                     <td class="text-end">${displayVal}</td>
                 </tr>`;
         }

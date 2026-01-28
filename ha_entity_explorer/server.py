@@ -43,9 +43,16 @@ history_cache = {}
 import yaml
 from functools import wraps
 from flask import session, redirect, url_for, flash
+from werkzeug.security import check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-app.secret_key = config.app.secret_key or 'dev-secret-key-change-me'
+app.secret_key = config.app.secret_key
+if not app.secret_key:
+    if os.environ.get('FLASK_DEBUG', 'false').lower() == 'true':
+        app.secret_key = 'dev-secret-key-change-me'
+        print("WARNING: using dev secret key")
+    else:
+        raise ValueError("No secret key configured!")
 
 class IngressMiddleware:
     def __init__(self, app):
@@ -58,6 +65,16 @@ class IngressMiddleware:
         return self.app(environ, start_response)
 
 app.wsgi_app = IngressMiddleware(app.wsgi_app)
+
+@app.after_request
+def add_security_headers(response):
+    # SA-04: Security Headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    # CSP: Allow scripts from self and cdn.jsdelivr.net (used in index.html)
+    # Also allow inline scripts/styles as the current app uses them heavily (would require refactor to remove)
+    response.headers['Content-Security-Policy'] = "default-src 'self' cdn.jsdelivr.net; script-src 'self' cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; font-src 'self' cdn.jsdelivr.net data:;"
+    return response
 
 # Apply ProxyFix to handle X-Forwarded headers from Reverse Proxy
 # This ensures request.url matches the external URL (HTTPS) and not the internal one (HTTP)
@@ -277,7 +294,7 @@ def login():
         
         users = load_users()
         
-        if username in users and users[username] == password:
+        if username in users and check_password_hash(users[username], password):
             # Success: Reset attempts
             if client_ip in login_attempts:
                 del login_attempts[client_ip]
@@ -722,4 +739,6 @@ if __name__ == '__main__':
     if HOST == "0.0.0.0":
         print("Also accessible from other machines using your IP address")
     
-    app.run(debug=True, host=HOST, port=PORT)
+    # SA-02: Disable debug mode in production
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(debug=debug_mode, host=HOST, port=PORT)
