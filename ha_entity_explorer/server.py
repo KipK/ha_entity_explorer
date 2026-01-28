@@ -14,6 +14,7 @@ A web application to explore and visualize history of any Home Assistant entity.
 """
 
 from datetime import datetime, timedelta
+import ipaddress
 from flask import Flask, render_template, jsonify, request, abort
 from dateutil import parser
 
@@ -83,9 +84,31 @@ def load_banned_ips():
         print(f"Error loading ip_bans.yaml: {e}")
         return []
 
+def is_safe_ip(ip, safe_list):
+    """
+    Check if an IP is in the safe list (supports CIDR).
+    """
+    if not ip or not safe_list:
+        return False
+        
+    for safe in safe_list:
+        try:
+            # Check for CIDR or simple IP match
+            if "/" in safe:  # Assume CIDR
+                if ipaddress.ip_address(ip) in ipaddress.ip_network(safe, strict=False):
+                    return True
+            else:
+                if ip == safe:
+                    return True
+        except ValueError:
+            # Continue if invalid IP format in config
+            continue
+            
+    return False
+
 def ban_ip(ip):
     """Add IP to ban list"""
-    if ip in config.safe_ips:
+    if is_safe_ip(ip, config.safe_ips):
         print(f"Skipping ban for safe IP: {ip}")
         return
 
@@ -245,7 +268,7 @@ def login():
     """Login page."""
     # Check if IP is banned
     client_ip = request.remote_addr
-    if client_ip not in config.safe_ips and client_ip in load_banned_ips():
+    if not is_safe_ip(client_ip, config.safe_ips) and client_ip in load_banned_ips():
         abort(403, description="Your IP address has been banned due to too many failed login attempts.")
 
     if request.method == 'POST':
