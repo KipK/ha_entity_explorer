@@ -14,7 +14,7 @@ RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
 WORKDIR /app
 COPY . /app
 
-# chmod scripts
-RUN chmod a+x /app/run.sh
+# Move run.sh to root and chmod
+RUN cp /app/run.sh /run.sh && chmod a+x /run.sh
 
-CMD [ "/app/run.sh" ]
+CMD [ "/run.sh" ]

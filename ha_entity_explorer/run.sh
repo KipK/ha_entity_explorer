@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv bashio
+#!/usr/bin/env bashio
 
 # Define config path
 CONFIG_PATH="/app/app_config.yaml"
