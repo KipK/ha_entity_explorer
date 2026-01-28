@@ -53,7 +53,12 @@ class HomeAssistantAPI:
         Raises:
             HomeAssistantAPIError: If request fails
         """
-        url = urljoin(self.base_url, endpoint)
+        # Helper to join URL parts safely, whether they have slashes or not
+        # This is needed because urljoin discards path components of base_url if endpoint starts with /
+        # which breaks when using the Supervisor proxy at http://supervisor/core
+        base = self.base_url.rstrip('/')
+        path = endpoint.lstrip('/')
+        url = f"{base}/{path}"
         
         try:
             response = requests.request(

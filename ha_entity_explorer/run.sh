@@ -13,24 +13,34 @@ bashio::log.info "Generating configuration..."
 # Actually, the options.json is at /data/options.json
 # But using bashio to read options is easier.
 
-HA_URL=$(bashio::config 'ha_url')
-HA_TOKEN=$(bashio::config 'ha_token')
+HA_URL=$(bashio::config 'ha_url' || echo '')
+HA_TOKEN=$(bashio::config 'ha_token' || echo '')
 LOG_LEVEL=$(bashio::config 'log_level')
 LANGUAGE=$(bashio::config 'language')
 DEFAULT_HISTORY_DAYS=$(bashio::config 'default_history_days')
-SECRET_KEY=$(bashio::config 'secret_key')
+
+# Generate a random secret key for Flask sessions
+# This ensures security without user intervention
+if command -v openssl >/dev/null 2>&1; then
+    SECRET_KEY=$(openssl rand -hex 32)
+else
+    # Fallback if openssl not available
+    SECRET_KEY=$(date +%s%N | sha256sum | base64 | head -c 32)
+fi
+bashio::log.info "Generated session secret key"
 
 # If HA_URL is empty, try to derive from environment or default internal URL
-if bashio::var.true "${HA_URL}"; then
+if [ -n "${HA_URL}" ]; then
     bashio::log.info "Using configured HA URL: ${HA_URL}"
 else
     # Default internal URL
     bashio::log.info "Using default internal HA URL"
+    # The Supervisor proxy for Home Assistant Core API
     HA_URL="http://supervisor/core"
 fi
 
 # If HA_TOKEN is empty, we might need to use the Supervisor token
-if bashio::var.true "${HA_TOKEN}"; then
+if [ -n "${HA_TOKEN}" ]; then
     bashio::log.info "Using configured HA Token"
 else
     bashio::log.info "Using Supervisor Token"

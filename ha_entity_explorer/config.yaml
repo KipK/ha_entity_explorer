@@ -13,18 +13,12 @@ map:
   - config:rw
 options:
   log_level: info
-  ha_url: ""
-  ha_token: ""
   language: "en"
   default_history_days: 4
-  secret_key: "change_me_in_production"
 schema:
   log_level: list(debug|info|warning|error)
-  ha_url: str
-  ha_token: str
   language: list(fr|en)
   default_history_days: int
-  secret_key: str
 ports:
   5000/tcp: 5000
 
