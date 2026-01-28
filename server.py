@@ -61,7 +61,10 @@ def load_banned_ips():
     try:
         with open('ip_bans.yaml', 'r') as f:
             data = yaml.safe_load(f)
-            return data.get('banned_ips', []) if data else []
+            if not data:
+                return []
+            bans = data.get('banned_ips')
+            return bans if bans is not None else []
     except FileNotFoundError:
         return []
     except Exception as e:
@@ -70,6 +73,10 @@ def load_banned_ips():
 
 def ban_ip(ip):
     """Add IP to ban list"""
+    if ip in config.safe_ips:
+        print(f"Skipping ban for safe IP: {ip}")
+        return
+
     try:
         bans = load_banned_ips()
         if ip not in bans:
@@ -226,7 +233,7 @@ def login():
     """Login page."""
     # Check if IP is banned
     client_ip = request.remote_addr
-    if client_ip in load_banned_ips():
+    if client_ip not in config.safe_ips and client_ip in load_banned_ips():
         abort(403, description="Your IP address has been banned due to too many failed login attempts.")
 
     if request.method == 'POST':

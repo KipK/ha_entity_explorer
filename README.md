@@ -75,6 +75,7 @@ To protect against brute-force attacks, the application implements rate limiting
 - **Limit**: 5 failed login attempts per IP address.
 - **Action**: The IP is strictly banned (403 Forbidden).
 - **Storage**: Banned IPs are stored in `ip_bans.yaml` (automatically created if not present).
+- **Safe IPs**: Localhost (`127.0.0.1`, `::1`) are always safe. You can add more via `safe_ips` in `config.yaml`.
 - **Unban**: To unban an IP, manually remove it from `ip_bans.yaml` (the server reads this file on every request, so no restart is needed).
 
 ## Configuration Options
@@ -89,6 +90,7 @@ To protect against brute-force attacks, the application implements rate limiting
 | `app.port` | Server port | 5000 |
 | `whitelist` | Only show these entities | [] |
 | `blacklist` | Hide these entities | [] |
+| `safe_ips` | IPs exempt from banning (always includes localhost) | [] |
 
 ## Using with pipx (Alternative)
 

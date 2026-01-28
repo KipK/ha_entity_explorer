@@ -34,14 +34,30 @@ app:
 # Use whitelist OR blacklist, not both. Whitelist takes precedence.
 
 # If whitelist is defined, ONLY these entities will be accessible
-whitelist: []
-  # Example:
-  # - climate.living_room
-  # - sensor.temperature_bedroom
-  # - switch.garden_lights
+# Default is empty (allow all):
+whitelist:
+
+# To add entities, use the following format:
+# whitelist:
+#   - climate.living_room
+#   - sensor.temperature_bedroom
+#   - switch.garden_lights
 
 # If blacklist is defined, these entities will be EXCLUDED
-blacklist: []
-  # Example:
-  # - sensor.private_data
-  # - binary_sensor.security_system
+# Default is empty:
+blacklist:
+
+# To exclude entities, use the following format:
+# blacklist:
+#   - sensor.private_data
+#   - binary_sensor.security_system
+
+# IP Banning Allowlist
+# IPs listed here will never be banned, even after many failed login attempts.
+# Localhost (127.0.0.1 and ::1) is always whitelisted automatically.
+safe_ips:
+
+# To add IP addresses, use the following format:
+# safe_ips:
+#   - "192.168.1.50"  # Your Reverse Proxy
+#   - "10.0.0.5"      # Admin workstation

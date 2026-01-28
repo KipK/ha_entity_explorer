@@ -34,6 +34,7 @@ class Config:
     app: AppConfig
     whitelist: List[str] = field(default_factory=list)
     blacklist: List[str] = field(default_factory=list)
+    safe_ips: List[str] = field(default_factory=list)
     
     def is_entity_allowed(self, entity_id: str) -> bool:
         """
@@ -130,12 +131,20 @@ def load_config(config_path: Optional[str] = None) -> Config:
     
     whitelist = data.get("whitelist", []) or []
     blacklist = data.get("blacklist", []) or []
+    safe_ips = data.get("safe_ips", []) or []
+    
+    # Always include localhost in safe_ips
+    if "127.0.0.1" not in safe_ips:
+        safe_ips.append("127.0.0.1")
+    if "::1" not in safe_ips:
+        safe_ips.append("::1")
     
     config = Config(
         home_assistant=ha_config,
         app=app_config,
         whitelist=whitelist,
-        blacklist=blacklist
+        blacklist=blacklist,
+        safe_ips=safe_ips
     )
     
     print(f"Configuration loaded successfully")
