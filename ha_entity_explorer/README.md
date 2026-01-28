@@ -41,6 +41,20 @@ home_assistant:
 
 app:
   language: "en"  # or "fr"
+  default_history_days: 4
+  host: "0.0.0.0"
+  port: 5000
+
+# Security: IPs that will never be banned
+safe_ips:
+#  - "192.168.1.50" # Example IP
+
+
+# Optional: Restrict access to specific entities
+# whitelist:
+#   - climate.living_room
+# blacklist:
+#   - sensor.private_data
 ```
 
 ## Installation as Home Assistant Add-on
