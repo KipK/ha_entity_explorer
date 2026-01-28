@@ -58,9 +58,8 @@ Open your browser at: http://localhost:5000
 
 ## Authentication
 
-The application supports two methods of authentication:
+The application supports authentication:
 
-1.  **Local Authentication**:
     Create a `users.yaml` file in the application directory (see `users.yaml.example`):
     ```yaml
     users:
