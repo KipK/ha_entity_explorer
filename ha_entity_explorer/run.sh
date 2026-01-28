@@ -152,7 +152,18 @@ import json
 import os
 
 data = os.environ.get('USERS_JSON', '')
-users_input = json.loads(data) if data else []
+try:
+    users_input = json.loads(data) if data else []
+except json.JSONDecodeError:
+    # Handle case where bashio returns multiple JSON objects (NDJSON)
+    # This happens when multiple users are defined
+    users_input = []
+    for line in data.splitlines():
+        if line.strip():
+            try:
+                users_input.append(json.loads(line))
+            except:
+                pass
 users_dict = {}
 
 # Normalize to list if it's a single dict (edge case or config quirk)
