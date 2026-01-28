@@ -16,10 +16,23 @@ options:
   log_level: info
   language: "en"
   default_history_days: 4
+  whitelist: []
+  blacklist: []
+  safe_ips: []
+  auth_users: []
 schema:
   log_level: list(debug|info|warning|error)
   language: list(fr|en)
   default_history_days: int
+  whitelist:
+    - str
+  blacklist:
+    - str
+  safe_ips:
+    - str
+  auth_users:
+    - username: str
+      password: str
 ports:
   8050/tcp: 8050
 

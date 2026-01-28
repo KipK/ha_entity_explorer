@@ -32,9 +32,16 @@ bashio::log.info "Generating configuration..."
 # HA Add-ons automatically expose SUPERVISOR_TOKEN and HASSIO_URL if mapped?
 # Actually, the options.json is at /data/options.json
 # Get values from options
+# Get values from options
 LOG_LEVEL=$(bashio::config 'log_level')
 LANGUAGE=$(bashio::config 'language')
 DEFAULT_HISTORY_DAYS=$(bashio::config 'default_history_days')
+
+# Process list configurations to YAML format for app_config.yaml
+# We use jq to convert the bashio config (json) to yaml format for these lists
+WHITELIST_YAML=$(bashio::config 'whitelist' | jq -r 'if length > 0 then . else [] end')
+BLACKLIST_YAML=$(bashio::config 'blacklist' | jq -r 'if length > 0 then . else [] end')
+SAFE_IPS_YAML=$(bashio::config 'safe_ips' | jq -r 'if length > 0 then . else [] end')
 
 # Generate a random secret key for Flask sessions
 # This ensures security without user intervention
@@ -89,26 +96,57 @@ else
 fi
 
 # Write config yaml
-cat > "${CONFIG_PATH}" <<EOF
-home_assistant:
-  url: "${HA_URL}"
-  api_token: "${HA_TOKEN}"
+# We use python to safely dump yaml to avoid issues
+python3 -c "
+import yaml
+import json
+import os
 
-app:
-  language: "${LANGUAGE}"
-  default_history_days: ${DEFAULT_HISTORY_DAYS}
-  host: "0.0.0.0"
-  port: 8050
-  secret_key: "${SECRET_KEY}"
+config = {
+    'home_assistant': {
+        'url': '${HA_URL}',
+        'api_token': '${HA_TOKEN}'
+    },
+    'app': {
+        'language': '${LANGUAGE}',
+        'default_history_days': ${DEFAULT_HISTORY_DAYS},
+        'host': '0.0.0.0',
+        'port': 8050,
+        'secret_key': '${SECRET_KEY}'
+    },
+    'whitelist': json.loads('${WHITELIST_YAML}'),
+    'blacklist': json.loads('${BLACKLIST_YAML}'),
+    'safe_ips': json.loads('${SAFE_IPS_YAML}') + ['172.30.32.1', '172.30.32.2']
+}
 
-whitelist: []
-blacklist: []
-safe_ips:
-  - "127.0.0.1"
-  - "::1"
-  - "172.30.32.1"  # Supervisor
-  - "172.30.32.2"  # Home Assistant (usually)
-EOF
+with open('${CONFIG_PATH}', 'w') as f:
+    yaml.dump(config, f, default_flow_style=False)
+"
+
+# Handle auth_users
+# Process users and create users.yaml
+USERS_JSON=$(bashio::config 'auth_users')
+python3 -c "
+import yaml
+import json
+
+users_list = json.loads('${USERS_JSON}')
+users_dict = {}
+
+for user in users_list:
+    username = user.get('username')
+    password = user.get('password')
+    if username and password:
+        users_dict[username] = password
+
+if users_dict:
+    with open('users.yaml', 'w') as f:
+        yaml.dump({'users': users_dict}, f)
+else:
+    # Create empty file or remove it
+    if hasattr(os, 'remove') and os.path.exists('users.yaml'):
+       os.remove('users.yaml')
+"
 
 bashio::log.info "Configuration generated."
 
