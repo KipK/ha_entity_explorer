@@ -1025,6 +1025,15 @@ function handleImportUpload(event) {
     chartPlaceholder.classList.add('d-none');
     if (myChart) myChart.showLoading();
 
+    // Ensure we use the correct base URL logic for file upload? 
+    // Axios usually handles it, but let's be explicit if APP_ROOT is set
+    let url = 'api/import';
+    if (window.APP_ROOT) {
+        // If APP_ROOT ends with /, remove it to avoid double slash if api/import starts with / (it doesn't)
+        // But here we rely on axios baseURL
+        console.log('Using baseURL for import:', axios.defaults.baseURL);
+    }
+
     axios.post('api/import', formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
