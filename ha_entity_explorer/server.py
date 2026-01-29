@@ -16,6 +16,8 @@ A web application to explore and visualize history of any Home Assistant entity.
 from datetime import datetime, timedelta
 import ipaddress
 import os
+import json
+import uuid
 from flask import Flask, render_template, jsonify, request, abort
 from dateutil import parser
 
@@ -39,6 +41,10 @@ ha_api = HomeAssistantAPI(
 
 # Cache for processed history data
 history_cache = {}
+
+# Cache for imported data (session based usually, but here global for simplicity)
+# Structure: { import_id: [raw_data_list] }
+imported_data_cache = {}
 
 # Authentication setup
 import yaml
@@ -759,6 +765,153 @@ def export_attribute_history(entity_id: str):
         
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+@app.route('/api/import', methods=['POST'])
+@login_required
+def import_history():
+    """
+    Import history data from a JSON file.
+    Detects if it is a full entity export or an attribute export.
+    Returns the processed data for visualization.
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    try:
+        data = json.load(file)
+        
+        if not isinstance(data, list) or not data:
+            return jsonify({"error": "Invalid JSON format: expected a non-empty list"}), 400
+            
+        # Determine format based on first entry
+        first_entry = data[0]
+        
+        # Check if it's an attribute export (has 'value' and 'timestamp')
+        if 'value' in first_entry and 'timestamp' in first_entry:
+            # Process as attribute history
+            timestamps = []
+            values = []
+            is_numeric = None
+            
+            for entry in data:
+                ts = entry.get('timestamp')
+                val = entry.get('value')
+                
+                if not ts:
+                    continue
+                    
+                timestamps.append(ts)
+                values.append(val)
+                
+                if is_numeric is None and val is not None:
+                    is_numeric = isinstance(val, (int, float))
+            
+            if is_numeric is None:
+                is_numeric = True
+                
+            return jsonify({
+                "type": "attribute",
+                "filename": file.filename,
+                "data": {
+                    "key": "Imported Attribute", # We don't have the original key, just filename
+                    "type": "numeric" if is_numeric else "text",
+                    "timestamps": timestamps,
+                    "values": values
+                }
+            })
+            
+        # Check if it's an entity export (has 'attributes', 'state', 'entity_id')
+        elif 'attributes' in first_entry and 'entity_id' in first_entry:
+            entity_id = first_entry.get('entity_id')
+            import_id = str(uuid.uuid4())
+            
+            # Cache the raw data for details lookup
+            imported_data_cache[import_id] = data
+            
+            # Determine processing method
+            domain = entity_id.split(".")[0] if "." in entity_id else ""
+            
+            if domain == "climate":
+                result = process_climate_history(data)
+            else:
+                result = process_generic_history(data, entity_id)
+                
+            # Add metadata
+            result["entity_id"] = entity_id
+            result["import_id"] = import_id  # Pass back ID for details lookup
+            if data:
+                # Use data timestamps since we don't have request params
+                # Sort by timestamp to be sure (assuming ISO format)
+                sorted_ts = sorted([
+                    e.get("last_changed") or e.get("last_updated") 
+                    for e in data 
+                    if e.get("last_changed") or e.get("last_updated")
+                ])
+                if sorted_ts:
+                    result["start"] = sorted_ts[0]
+                    result["end"] = sorted_ts[-1]
+            
+            result["count"] = len(result.get("timestamps", []))
+            
+            return jsonify({
+                "type": "entity",
+                "filename": file.filename,
+                "data": result
+            })
+            
+        else:
+            return jsonify({"error": "Unrecognized JSON format. Must be an Entity export or Attribute export."}), 400
+            
+    except json.JSONDecodeError:
+        return jsonify({"error": "Invalid JSON file"}), 400
+    except Exception as e:
+        print(f"Import error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/details/imported/<import_id>')
+@login_required
+def get_imported_details(import_id: str):
+    """
+    Get details for an imported entity at a specific timestamp.
+    """
+    if import_id not in imported_data_cache:
+        return jsonify({"error": "Import session expired or not found"}), 404
+        
+    data = imported_data_cache[import_id]
+    
+    ts_str = request.args.get('timestamp')
+    if not ts_str:
+        return jsonify({"error": "Missing timestamp parameter"}), 400
+        
+    try:
+        ts = parser.parse(ts_str)
+        target_ts = ts.timestamp()
+        
+        # Find closest entry in the cached data
+        # Only check entries that have a timestamp
+        valid_entries = [
+            x for x in data 
+            if x.get("last_changed") or x.get("last_updated")
+        ]
+        
+        if not valid_entries:
+            return jsonify({"error": "No valid timestamps in imported data"}), 404
+            
+        closest = min(valid_entries, key=lambda x: abs(
+            parser.parse(x.get("last_changed", x.get("last_updated"))).timestamp() - target_ts
+        ))
+        
+        # We assume the imported data is already full structure
+        return jsonify(closest)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     # Auto-migrate passwords if needed

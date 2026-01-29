@@ -9,6 +9,7 @@
 
 let entities = [];              // All available entities
 let currentEntityId = null;     // Currently selected entity
+let currentImportId = null;     // ID of the imported session (if any)
 let currentHistoryData = null;  // Current history data for the chart
 let dateRange = {
     start: null,
@@ -19,6 +20,8 @@ let appConfig = null;           // App configuration from server
 // DOM References
 const entitySearch = document.getElementById('entity-search');
 const entityDropdown = document.getElementById('entity-dropdown');
+const importBtn = document.getElementById('import-btn');
+const importFileInput = document.getElementById('import-file-input');
 const selectedEntityContainer = document.getElementById('selected-entity-container');
 const selectedEntityName = document.getElementById('selected-entity-name');
 const chartDom = document.getElementById('main-chart');
@@ -215,6 +218,7 @@ function selectEntity(entityId) {
 
 function clearSelectedEntity() {
     currentEntityId = null;
+    currentImportId = null;
     currentHistoryData = null;
 
     selectedEntityContainer.classList.add('d-none');
@@ -566,9 +570,18 @@ async function fetchDetails(timestamp) {
         if (!currentEntityId) return;
 
         try {
-            const response = await axios.get(`api/details/${currentEntityId}`, {
-                params: { timestamp }
-            });
+            let url;
+            let params = { timestamp };
+
+            if (currentImportId) {
+                // If imported, use the import details endpoint
+                url = `api/details/imported/${currentImportId}`;
+            } else {
+                // Regular entity details from HA
+                url = `api/details/${currentEntityId}`;
+            }
+
+            const response = await axios.get(url, { params });
             currentDetailsData = response.data;
             attributePath = [];
             displayAttributes(currentDetailsData, []);
@@ -995,6 +1008,113 @@ function applyQuickRange(days) {
 // Event Listeners Setup
 // =============================================================================
 
+// =============================================================================
+// Import Logic
+// =============================================================================
+
+function handleImportUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const t = window.i18n ? window.i18n.t : (k) => k;
+
+    // Show loading indicator
+    chartPlaceholder.classList.add('d-none');
+    if (myChart) myChart.showLoading();
+
+    axios.post('api/import', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+        .then(response => {
+            const result = response.data;
+
+            if (result.type === 'entity') {
+                // It's a full entity history import
+                handleEntityImport(result);
+            } else if (result.type === 'attribute') {
+                // It's a specific attribute history import
+                handleAttributeImport(result);
+            }
+        })
+        .catch(error => {
+            console.error('Import failed:', error);
+            const errorMsg = error.response?.data?.error || error.message;
+            alert(`${t('importFailed') || 'Import failed'}: ${errorMsg}`);
+            if (myChart) myChart.hideLoading();
+            chartPlaceholder.classList.remove('d-none');
+        })
+        .finally(() => {
+            // Reset file input
+            importFileInput.value = '';
+        });
+}
+
+function handleEntityImport(result) {
+    // Clear existing selection
+    currentEntityId = result.data.entity_id;
+    currentImportId = result.data.import_id; // Set import session
+    currentHistoryData = result.data;
+
+    // Update UI
+    entitySearch.value = '';
+    entityDropdown.classList.add('d-none');
+
+    // Show filename as entity name + (Imported)
+    const t = window.i18n ? window.i18n.t : (k) => k;
+    selectedEntityName.textContent = `${result.filename} (${t('imported') || 'Imported'})`;
+    selectedEntityContainer.classList.remove('d-none');
+
+    // Disable date controls for imported data as we can't fetch more
+    dateRangeBtn.disabled = true;
+    refreshBtn.classList.add('d-none');
+
+    if (result.data.start && result.data.end) {
+        if (window.i18n) {
+            dateRangeDisplay.textContent = `${t('imported')}: ${window.i18n.formatDateRange(new Date(result.data.start), new Date(result.data.end))}`;
+        } else {
+            dateRangeDisplay.textContent = `${t('imported')}: ${new Date(result.data.start).toLocaleString()} - ${new Date(result.data.end).toLocaleString()}`;
+        }
+    }
+
+    // Render chart
+    myChart.hideLoading();
+    if (currentHistoryData.type === 'climate') {
+        renderClimateChart(currentHistoryData);
+    } else if (currentHistoryData.type === 'numeric') {
+        renderNumericChart(currentHistoryData);
+    } else {
+        renderTextChart(currentHistoryData);
+    }
+}
+
+function handleAttributeImport(result) {
+    myChart.hideLoading();
+    if (!currentEntityId) {
+        chartPlaceholder.classList.remove('d-none');
+    }
+
+    // Open history modal directly
+    const t = window.i18n ? window.i18n.t : (k) => k;
+    historyTitle.textContent = `${t('history')}: ${result.filename} (${t('imported') || 'Imported'})`;
+    historyChartDom.classList.remove('d-none');
+    historyListDom.classList.add('d-none');
+
+    historyModal.show();
+
+    setTimeout(() => {
+        if (result.data.type === 'numeric') {
+            renderHistoryChart(result.data);
+        } else {
+            renderHistoryList(result.data);
+        }
+    }, 200);
+}
+
 function setupEventListeners() {
     // Entity search input
     entitySearch.addEventListener('input', (e) => {
@@ -1045,6 +1165,15 @@ function setupEventListeners() {
 
     // Refresh button
     refreshBtn.addEventListener('click', loadEntityHistory);
+
+    // Import button
+    if (importBtn && importFileInput) {
+        importBtn.addEventListener('click', () => {
+            importFileInput.click();
+        });
+
+        importFileInput.addEventListener('change', handleImportUpload);
+    }
 }
 
 // =============================================================================
