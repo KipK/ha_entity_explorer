@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+- Add JSON import functionality
+    - Can import entity export, or attribute export.
+    - Enable visualization of offline/imported data
+
 ## 1.0.1
 - Added dockerhub prebuilt images
 - Implement PBKDF2 password hashing for user credentials.
