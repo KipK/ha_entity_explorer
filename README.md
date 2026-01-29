@@ -33,7 +33,7 @@ This is a Home Assistant Add-on Repository for **HA Entity Explorer**.
 2.  Go to **Settings** -> **Add-ons** -> **Add-on Store**.
 3.  Click the **three dots** in the top right corner and select **Repositories**.
 4.  Add the URL of this GitHub repository:
-    `https://github.com/yourusername/ha_entity_explorer`
+    `https://github.com/kipk/ha_entity_explorer`
 5.  Click **Add**.
 6.  Close the dialog and refresh the page.
 7.  Scroll down to find **HA Entity Explorer** or search for it.
