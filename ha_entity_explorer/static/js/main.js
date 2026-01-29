@@ -1167,11 +1167,7 @@ function setupEventListeners() {
     refreshBtn.addEventListener('click', loadEntityHistory);
 
     // Import button
-    if (importBtn && importFileInput) {
-        importBtn.addEventListener('click', () => {
-            importFileInput.click();
-        });
-
+    if (importFileInput) {
         importFileInput.addEventListener('change', handleImportUpload);
     }
 }
