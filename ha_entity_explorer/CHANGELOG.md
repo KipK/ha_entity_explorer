@@ -1,12 +1,7 @@
 # Changelog
 
-## 1.0.3
+## 1.0.4
 - Add JSON import functionality ( fixed on HA Addon )
-    - Can import entity export, or attribute export.
-    - Enable visualization of offline/imported data
-
-## 1.0.2
-- Add JSON import functionality
     - Can import entity export, or attribute export.
     - Enable visualization of offline/imported data
 
