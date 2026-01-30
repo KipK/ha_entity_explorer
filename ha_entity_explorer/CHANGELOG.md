@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.5
+- Implement server-side memory cleanup for imported sessions
+- Add `DELETE /api/import/<import_id>` endpoint to remove imported data from server RAM
+- Trigger cleanup request when user closes the entity view
+- Use `pagehide` event with `keepalive: true` to ensure memory is freed on page unload/refresh
+
 ## 1.0.4
 - Add JSON import functionality ( fixed on HA Addon )
     - Can import entity export, or attribute export.
