@@ -874,6 +874,18 @@ def import_history():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/import/<import_id>', methods=['DELETE'])
+@login_required
+def delete_import(import_id: str):
+    """
+    Remove imported data from cache to free up memory.
+    """
+    if import_id in imported_data_cache:
+        del imported_data_cache[import_id]
+        print(f"Memory freed for import session: {import_id}")
+        return jsonify({"success": True})
+    return jsonify({"error": "Import session not found"}), 404
+
 @app.route('/api/details/imported/<import_id>')
 @login_required
 def get_imported_details(import_id: str):

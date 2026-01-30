@@ -217,6 +217,14 @@ function selectEntity(entityId) {
 }
 
 function clearSelectedEntity() {
+    // If it was an import, notify server to free memory
+    if (currentImportId) {
+        console.log(`Releasing memory for import session: ${currentImportId}`);
+        axios.delete(`api/import/${currentImportId}`).catch(err => {
+            console.warn('Failed to release server memory', err);
+        });
+    }
+
     currentEntityId = null;
     currentImportId = null;
     currentHistoryData = null;
@@ -1179,6 +1187,31 @@ function setupEventListeners() {
     if (importFileInput) {
         importFileInput.addEventListener('change', handleImportUpload);
     }
+
+    // Cleanup on page unload (close browser, close tab, refresh, etc.)
+    window.addEventListener('pagehide', () => {
+        if (currentImportId) {
+            // Construct absolute URL for fetch (keepalive needs valid URL)
+            let baseUrl = window.APP_ROOT || '';
+            // Ensure no double slash if both exist (though usually APP_ROOT is clean)
+            if (baseUrl && !baseUrl.endsWith('/')) baseUrl += '/';
+
+            const url = `${baseUrl}api/import/${currentImportId}`;
+            console.log(`Releasing memory for import session (page unload): ${currentImportId}`);
+
+            // Use fetch with keepalive: true to ensure the request completes after unload
+            fetch(url, {
+                method: 'DELETE',
+                keepalive: true,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).catch(err => {
+                // Console might not show this on unload, but good for debugging if persistent logs
+                console.error('Failed to release server memory on unload', err);
+            });
+        }
+    });
 }
 
 // =============================================================================
