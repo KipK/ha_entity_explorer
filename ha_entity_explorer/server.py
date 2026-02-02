@@ -925,6 +925,68 @@ def get_imported_details(import_id: str):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/attribute-history/imported/<import_id>')
+@login_required
+def get_imported_attribute_history(import_id: str):
+    """
+    Get history for a specific attribute from imported data.
+    """
+    if import_id not in imported_data_cache:
+        return jsonify({"error": "Import session expired or not found"}), 404
+        
+    data = imported_data_cache[import_id]
+    
+    key = request.args.get('key')
+    if not key:
+        return jsonify({"error": "Missing key parameter"}), 400
+        
+    try:
+        timestamps = []
+        values = []
+        is_numeric = None
+        
+        # Parse the key path
+        key_parts = key.split('.')
+        
+        for entry in data:
+            ts = entry.get("last_changed") or entry.get("last_updated")
+            if not ts:
+                continue
+            
+            timestamps.append(ts)
+            
+            # Navigate to the attribute value
+            attrs = entry.get("attributes", {})
+            val = attrs
+            
+            for part in key_parts:
+                if isinstance(val, dict):
+                    val = val.get(part)
+                else:
+                    val = None
+                    break
+            
+            values.append(val)
+            
+            # Determine if numeric (check non-null values)
+            if is_numeric is None and val is not None:
+                is_numeric = isinstance(val, (int, float))
+        
+        # If all values are null, assume numeric
+        if is_numeric is None:
+            is_numeric = True
+            
+        return jsonify({
+            "key": key,
+            "type": "numeric" if is_numeric else "text",
+            "timestamps": timestamps,
+            "values": values
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     # Auto-migrate passwords if needed
     migrate_passwords()

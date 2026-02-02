@@ -743,13 +743,22 @@ async function showAttributeHistory(key) {
     historyModal.show();
 
     try {
-        const params = new URLSearchParams({
+        let url;
+        let params = new URLSearchParams({
             key,
             start: dateRange.start.toISOString(),
             end: dateRange.end.toISOString()
         });
 
-        const response = await axios.get(`api/attribute-history/${currentEntityId}?${params}`);
+        if (currentImportId) {
+            // Use imported data endpoint
+            url = `api/attribute-history/imported/${currentImportId}`;
+        } else {
+            // Use live HA API endpoint
+            url = `api/attribute-history/${currentEntityId}`;
+        }
+
+        const response = await axios.get(`${url}?${params}`);
         const data = response.data;
 
         historyLoading.classList.add('d-none');

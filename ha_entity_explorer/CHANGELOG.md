@@ -1,4 +1,6 @@
 # Changelog
+## 1.0.6
+- Fix attributes graph not displayed with imported data
 
 ## 1.0.5
 - Implement server-side memory cleanup for imported sessions
