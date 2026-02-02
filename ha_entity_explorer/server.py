@@ -925,7 +925,7 @@ def get_imported_details(import_id: str):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/attribute-history/imported/<import_id>')
+@app.route('/api/imported/attribute-history/<import_id>')
 @login_required
 def get_imported_attribute_history(import_id: str):
     """

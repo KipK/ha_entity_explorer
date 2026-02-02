@@ -752,7 +752,7 @@ async function showAttributeHistory(key) {
 
         if (currentImportId) {
             // Use imported data endpoint
-            url = `api/attribute-history/imported/${currentImportId}`;
+            url = `api/imported/attribute-history/${currentImportId}`;
         } else {
             // Use live HA API endpoint
             url = `api/attribute-history/${currentEntityId}`;

@@ -1,4 +1,8 @@
 # Changelog
+
+## 1.0.7
+- Fix attributes graph not displayed with imported data with Ingress
+
 ## 1.0.6
 - Fix attributes graph not displayed with imported data
 
