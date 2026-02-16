@@ -685,8 +685,12 @@ def export_entity_history(entity_id: str):
         
         # Prepare filename
         filename = f"history_{entity_id}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}.json"
-        
-        response = jsonify(export_data)
+    
+        from flask import Response
+        response = Response(
+            json.dumps(export_data, indent=2, ensure_ascii=False),
+            mimetype='application/json'
+        )
         response.headers["Content-Disposition"] = f"attachment; filename={filename}"
         return response
         
@@ -758,8 +762,12 @@ def export_attribute_history(entity_id: str):
                 })
         
         filename = f"history_{entity_id}_{key}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}.json"
-        
-        response = jsonify(export_data)
+    
+        from flask import Response
+        response = Response(
+            json.dumps(export_data, indent=2, ensure_ascii=False),
+            mimetype='application/json'
+        )
         response.headers["Content-Disposition"] = f"attachment; filename={filename}"
         return response
         
