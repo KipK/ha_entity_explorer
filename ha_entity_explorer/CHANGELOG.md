@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.8
+- Add ZIP file support for import and export
+  Export data as ZIP by default (smaller file size)
+  Import from ZIP files containing a single JSON file
+- fix: Reset attribute display when loading new entity
+- fix: fix Refresh button only refreshed from server cache
+- fix: indent correctly exported json file
+
 ## 1.0.7
 - Fix attributes graph not displayed with imported data with Ingress
 

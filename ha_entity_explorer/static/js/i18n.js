@@ -50,6 +50,12 @@ const translations = {
         time: "Heure",
         loading: "Chargement...",
         failedToLoadAttributeHistory: "Échec du chargement de l'historique de l'attribut",
+        
+        // Export
+        exportData: "Exporter les données",
+        exportAsZip: "Exporter en .zip",
+        imported: "Importé",
+        importFailed: "Échec de l'import",
 
         // Errors
         errorDateRange: "Veuillez sélectionner les dates de début et de fin",
@@ -103,6 +109,12 @@ const translations = {
         time: "Time",
         loading: "Loading...",
         failedToLoadAttributeHistory: "Failed to load attribute history",
+        
+        // Export
+        exportData: "Export Data",
+        exportAsZip: "Export as .zip",
+        imported: "Imported",
+        importFailed: "Import failed",
 
         // Errors
         errorDateRange: "Please select both start and end dates",

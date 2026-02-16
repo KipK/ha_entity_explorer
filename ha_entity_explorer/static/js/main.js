@@ -31,6 +31,8 @@ const dateRangeDisplay = document.getElementById('date-range-display');
 const refreshBtn = document.getElementById('refresh-btn');
 const detailsContent = document.getElementById('details-content');
 const cursorTimeDisplay = document.getElementById('cursor-time');
+const zipExportContainer = document.getElementById('zip-export-container');
+const zipExportCheckbox = document.getElementById('zip-export-checkbox');
 
 // Modals
 const dateRangeModal = new bootstrap.Modal(document.getElementById('dateRangeModal'));
@@ -211,6 +213,7 @@ function selectEntity(entityId) {
     selectedEntityContainer.classList.remove('d-none');
     dateRangeBtn.disabled = false;
     refreshBtn.classList.remove('d-none');
+    zipExportContainer.style.display = 'block';
 
     // Reset attributes panel - will be populated when user clicks on chart
     currentDetailsData = null;
@@ -239,6 +242,7 @@ function clearSelectedEntity() {
     selectedEntityContainer.classList.add('d-none');
     dateRangeBtn.disabled = true;
     refreshBtn.classList.add('d-none');
+    zipExportContainer.style.display = 'none';
     dateRangeDisplay.textContent = '';
 
     // Clear chart
@@ -857,13 +861,14 @@ function renderHistoryList(data) {
     historyListDom.classList.remove('d-none');
 
     const t = window.i18n ? window.i18n.t : (k) => k;
+    const asZip = zipExportCheckbox ? zipExportCheckbox.checked : true;
     let html = `
-        <div class="d-flex justify-content-end mb-2">
-            <button class="btn btn-sm btn-outline-light" onclick="exportData('attribute', '${currentEntityId}', null, null, '${data.key}')">
-                <i class="bi bi-download"></i> ${t('exportData') || 'Export Data'}
-            </button>
-        </div>
-        <table class="table table-dark table-sm table-striped">`;
+    <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-sm btn-outline-light" onclick="exportData('attribute', '${currentEntityId}', null, null, '${data.key}', ${asZip})">
+            <i class="bi bi-download"></i> ${t('exportData') || 'Export Data'}
+        </button>
+    </div>
+    <table class="table table-dark table-sm table-striped">`;
     html += `<thead><tr><th>${t('time')}</th><th>${t('value')}</th></tr></thead><tbody>`;
 
     data.timestamps.forEach((ts, index) => {
@@ -912,7 +917,7 @@ function applyDateRange() {
 // Data Export
 // =============================================================================
 
-function exportData(type, entityId, start, end, key = null) {
+function exportData(type, entityId, start, end, key = null, asZip = true) {
     if (!start || !end) {
         start = dateRange.start;
         end = dateRange.end;
@@ -926,7 +931,8 @@ function exportData(type, entityId, start, end, key = null) {
 
     const params = new URLSearchParams({
         start: start.toISOString(),
-        end: end.toISOString()
+        end: end.toISOString(),
+        zip: asZip ? 'true' : 'false'
     });
 
     if (type === 'entity') {
@@ -1003,7 +1009,9 @@ function getCommonToolbox(type, data, attributeKey = null, chartInstance = null)
                         end = dateRange.end;
                     }
 
-                    exportData(type, data.entity_id || currentEntityId, start, end, attributeKey);
+                    // Use checkbox value for ZIP export
+                    const asZip = zipExportCheckbox ? zipExportCheckbox.checked : true;
+                    exportData(type, data.entity_id || currentEntityId, start, end, attributeKey, asZip);
                 }
             }
         }
@@ -1106,6 +1114,7 @@ function handleEntityImport(result) {
     // Disable date controls for imported data as we can't fetch more
     dateRangeBtn.disabled = true;
     refreshBtn.classList.add('d-none');
+    zipExportContainer.style.display = 'block';
 
     if (result.data.start && result.data.end) {
         if (window.i18n) {

@@ -18,6 +18,8 @@ import ipaddress
 import os
 import json
 import uuid
+import zipfile
+import io
 from flask import Flask, render_template, jsonify, request, abort
 from dateutil import parser
 
@@ -644,18 +646,20 @@ def get_history_range(entity_id: str):
 @login_required
 def export_entity_history(entity_id: str):
     """
-    Export full history for an entity as JSON.
-    
+    Export full history for an entity as JSON or ZIP.
+
     Query parameters:
-        start: ISO datetime string
-        end: ISO datetime string
+    start: ISO datetime string
+    end: ISO datetime string
+    zip: If 'true', returns a ZIP file containing the JSON
     """
     # Security check
     validate_entity_access(entity_id)
-    
+
     start_str = request.args.get('start')
     end_str = request.args.get('end')
-    
+    as_zip = request.args.get('zip', 'true').lower() == 'true'
+
     try:
         # Determine time range
         if start_str:
@@ -664,7 +668,7 @@ def export_entity_history(entity_id: str):
         else:
             end_time = datetime.now()
             start_time = end_time - timedelta(days=config.app.default_history_days)
-            
+
         # Fetch full history (minimal_response=False to get attributes)
         history = ha_api.get_history(
             entity_id,
@@ -672,7 +676,7 @@ def export_entity_history(entity_id: str):
             end_time=end_time,
             minimal_response=False
         )
-        
+
         # Add normalized timestamp field for consistency with attribute export
         export_data = []
         for entry in history:
@@ -682,18 +686,36 @@ def export_entity_history(entity_id: str):
                 **entry
             }
             export_data.append(export_entry)
-        
+
         # Prepare filename
-        filename = f"history_{entity_id}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}.json"
-    
+        base_filename = f"history_{entity_id}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}"
+        json_filename = f"{base_filename}.json"
+
         from flask import Response
-        response = Response(
-            json.dumps(export_data, indent=2, ensure_ascii=False),
-            mimetype='application/json'
-        )
-        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-        return response
-        
+
+        if as_zip:
+            # Create ZIP file in memory
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr(json_filename, json.dumps(export_data, indent=2, ensure_ascii=False))
+            
+            zip_buffer.seek(0)
+            zip_filename = f"{base_filename}.zip"
+            
+            response = Response(
+                zip_buffer.getvalue(),
+                mimetype='application/zip'
+            )
+            response.headers["Content-Disposition"] = f"attachment; filename={zip_filename}"
+            return response
+        else:
+            response = Response(
+                json.dumps(export_data, indent=2, ensure_ascii=False),
+                mimetype='application/json'
+            )
+            response.headers["Content-Disposition"] = f"attachment; filename={json_filename}"
+            return response
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -702,23 +724,25 @@ def export_entity_history(entity_id: str):
 @login_required
 def export_attribute_history(entity_id: str):
     """
-    Export specific attribute history as JSON.
-    
+    Export specific attribute history as JSON or ZIP.
+
     Query parameters:
-        key: Attribute key path
-        start: ISO datetime string
-        end: ISO datetime string
+    key: Attribute key path
+    start: ISO datetime string
+    end: ISO datetime string
+    zip: If 'true', returns a ZIP file containing the JSON
     """
     # Security check
     validate_entity_access(entity_id)
-    
+
     key = request.args.get('key')
     if not key:
         return jsonify({"error": "Missing key parameter"}), 400
-        
+
     start_str = request.args.get('start')
     end_str = request.args.get('end')
-    
+    as_zip = request.args.get('zip', 'true').lower() == 'true'
+
     try:
         # Determine time range
         if start_str:
@@ -727,7 +751,7 @@ def export_attribute_history(entity_id: str):
         else:
             end_time = datetime.now()
             start_time = end_time - timedelta(days=config.app.default_history_days)
-            
+
         # Fetch full history
         history = ha_api.get_history(
             entity_id,
@@ -735,146 +759,230 @@ def export_attribute_history(entity_id: str):
             end_time=end_time,
             minimal_response=False
         )
-        
+
         export_data = []
         key_parts = key.split('.')
-        
+
         for entry in history:
             ts = entry.get("last_changed") or entry.get("last_updated")
             if not ts:
                 continue
-                
+
             # Navigate to value
             attrs = entry.get("attributes", {})
             val = attrs
-            
+
             for part in key_parts:
                 if isinstance(val, dict):
                     val = val.get(part)
                 else:
                     val = None
                     break
-            
+
             if val is not None:
                 export_data.append({
                     "timestamp": ts,
                     "value": val
                 })
-        
-        filename = f"history_{entity_id}_{key}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}.json"
-    
+
+        base_filename = f"history_{entity_id}_{key}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}"
+        json_filename = f"{base_filename}.json"
+
         from flask import Response
-        response = Response(
-            json.dumps(export_data, indent=2, ensure_ascii=False),
-            mimetype='application/json'
-        )
-        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-        return response
-        
+
+        if as_zip:
+            # Create ZIP file in memory
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr(json_filename, json.dumps(export_data, indent=2, ensure_ascii=False))
+            
+            zip_buffer.seek(0)
+            zip_filename = f"{base_filename}.zip"
+            
+            response = Response(
+                zip_buffer.getvalue(),
+                mimetype='application/zip'
+            )
+            response.headers["Content-Disposition"] = f"attachment; filename={zip_filename}"
+            return response
+        else:
+            response = Response(
+                json.dumps(export_data, indent=2, ensure_ascii=False),
+                mimetype='application/json'
+            )
+            response.headers["Content-Disposition"] = f"attachment; filename={json_filename}"
+            return response
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+def process_imported_json_data(data, filename):
+    """
+    Process imported JSON data and return the appropriate response.
+    This is a helper function used by both direct JSON import and ZIP import.
+    
+    Args:
+        data: Parsed JSON data (list of entries)
+        filename: Original filename for display
+        
+    Returns:
+        Tuple of (response_dict, status_code)
+    """
+    if not isinstance(data, list) or not data:
+        return {"error": "Invalid JSON format: expected a non-empty list"}, 400
+
+    # Determine format based on first entry
+    first_entry = data[0]
+
+    # Check if it's an attribute export (has 'value' and 'timestamp')
+    if 'value' in first_entry and 'timestamp' in first_entry:
+        # Process as attribute history
+        timestamps = []
+        values = []
+        is_numeric = None
+
+        for entry in data:
+            ts = entry.get('timestamp')
+            val = entry.get('value')
+
+            if not ts:
+                continue
+
+            timestamps.append(ts)
+            values.append(val)
+
+            if is_numeric is None and val is not None:
+                is_numeric = isinstance(val, (int, float))
+
+        if is_numeric is None:
+            is_numeric = True
+
+        return {
+            "type": "attribute",
+            "filename": filename,
+            "data": {
+                "key": "Imported Attribute", # We don't have the original key, just filename
+                "type": "numeric" if is_numeric else "text",
+                "timestamps": timestamps,
+                "values": values
+            }
+        }, 200
+
+    # Check if it's an entity export (has 'attributes', 'state', 'entity_id')
+    elif 'attributes' in first_entry and 'entity_id' in first_entry:
+        entity_id = first_entry.get('entity_id')
+        import_id = str(uuid.uuid4())
+
+        # Cache the raw data for details lookup
+        imported_data_cache[import_id] = data
+
+        # Determine processing method
+        domain = entity_id.split(".")[0] if "." in entity_id else ""
+
+        if domain == "climate":
+            result = process_climate_history(data)
+        else:
+            result = process_generic_history(data, entity_id)
+
+        # Add metadata
+        result["entity_id"] = entity_id
+        result["import_id"] = import_id # Pass back ID for details lookup
+        if data:
+            # Use data timestamps since we don't have request params
+            # Sort by timestamp to be sure (assuming ISO format)
+            sorted_ts = sorted([
+                e.get("last_changed") or e.get("last_updated")
+                for e in data
+                if e.get("last_changed") or e.get("last_updated")
+            ])
+            if sorted_ts:
+                result["start"] = sorted_ts[0]
+                result["end"] = sorted_ts[-1]
+
+        result["count"] = len(result.get("timestamps", []))
+
+        return {
+            "type": "entity",
+            "filename": filename,
+            "data": result
+        }, 200
+
+    else:
+        return {"error": "Unrecognized JSON format. Must be an Entity export or Attribute export."}, 400
 
 
 @app.route('/api/import', methods=['POST'])
 @login_required
 def import_history():
     """
-    Import history data from a JSON file.
+    Import history data from a JSON file or ZIP file containing a JSON file.
     Detects if it is a full entity export or an attribute export.
     Returns the processed data for visualization.
+    
+    For ZIP files:
+    - Only accepts ZIP containing exactly one .json file
+    - Ignores non-JSON files and shows error if multiple JSON files found
     """
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
-        
+
     file = request.files['file']
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
-        
+
+    filename = file.filename.lower()
+    
+    # Check if it's a ZIP file
+    if filename.endswith('.zip'):
+        try:
+            # Read the file into memory since it's a file-like object
+            file_content = file.read()
+            
+            with zipfile.ZipFile(io.BytesIO(file_content), 'r') as zf:
+                # List all files in the ZIP
+                all_files = zf.namelist()
+                
+                # Filter for .json files (excluding directories)
+                json_files = [f for f in all_files if f.lower().endswith('.json') and not f.endswith('/')]
+                
+                if len(json_files) == 0:
+                    return jsonify({"error": "No .json file found in the ZIP archive"}), 400
+                
+                if len(json_files) > 1:
+                    return jsonify({
+                        "error": f"Multiple .json files found in ZIP ({len(json_files)}). Please include only one JSON file."
+                    }), 400
+                
+                # Extract and process the single JSON file
+                json_filename = json_files[0]
+                
+                # Security check: prevent path traversal
+                if '..' in json_filename or json_filename.startswith('/'):
+                    return jsonify({"error": "Invalid file path in ZIP archive"}), 400
+                
+                with zf.open(json_filename) as json_file:
+                    try:
+                        data = json.load(json_file)
+                    except json.JSONDecodeError:
+                        return jsonify({"error": f"Invalid JSON file in ZIP: {json_filename}"}), 400
+                
+                # Process the JSON data
+                result, status = process_imported_json_data(data, json_filename)
+                return jsonify(result), status
+                
+        except zipfile.BadZipFile:
+            return jsonify({"error": "Invalid or corrupted ZIP file"}), 400
+        except Exception as e:
+            print(f"ZIP Import error: {e}")
+            return jsonify({"error": str(e)}), 500
+    
+    # Regular JSON file import
     try:
         data = json.load(file)
-        
-        if not isinstance(data, list) or not data:
-            return jsonify({"error": "Invalid JSON format: expected a non-empty list"}), 400
-            
-        # Determine format based on first entry
-        first_entry = data[0]
-        
-        # Check if it's an attribute export (has 'value' and 'timestamp')
-        if 'value' in first_entry and 'timestamp' in first_entry:
-            # Process as attribute history
-            timestamps = []
-            values = []
-            is_numeric = None
-            
-            for entry in data:
-                ts = entry.get('timestamp')
-                val = entry.get('value')
-                
-                if not ts:
-                    continue
-                    
-                timestamps.append(ts)
-                values.append(val)
-                
-                if is_numeric is None and val is not None:
-                    is_numeric = isinstance(val, (int, float))
-            
-            if is_numeric is None:
-                is_numeric = True
-                
-            return jsonify({
-                "type": "attribute",
-                "filename": file.filename,
-                "data": {
-                    "key": "Imported Attribute", # We don't have the original key, just filename
-                    "type": "numeric" if is_numeric else "text",
-                    "timestamps": timestamps,
-                    "values": values
-                }
-            })
-            
-        # Check if it's an entity export (has 'attributes', 'state', 'entity_id')
-        elif 'attributes' in first_entry and 'entity_id' in first_entry:
-            entity_id = first_entry.get('entity_id')
-            import_id = str(uuid.uuid4())
-            
-            # Cache the raw data for details lookup
-            imported_data_cache[import_id] = data
-            
-            # Determine processing method
-            domain = entity_id.split(".")[0] if "." in entity_id else ""
-            
-            if domain == "climate":
-                result = process_climate_history(data)
-            else:
-                result = process_generic_history(data, entity_id)
-                
-            # Add metadata
-            result["entity_id"] = entity_id
-            result["import_id"] = import_id  # Pass back ID for details lookup
-            if data:
-                # Use data timestamps since we don't have request params
-                # Sort by timestamp to be sure (assuming ISO format)
-                sorted_ts = sorted([
-                    e.get("last_changed") or e.get("last_updated") 
-                    for e in data 
-                    if e.get("last_changed") or e.get("last_updated")
-                ])
-                if sorted_ts:
-                    result["start"] = sorted_ts[0]
-                    result["end"] = sorted_ts[-1]
-            
-            result["count"] = len(result.get("timestamps", []))
-            
-            return jsonify({
-                "type": "entity",
-                "filename": file.filename,
-                "data": result
-            })
-            
-        else:
-            return jsonify({"error": "Unrecognized JSON format. Must be an Entity export or Attribute export."}), 400
-            
+        result, status = process_imported_json_data(data, file.filename)
+        return jsonify(result), status
+
     except json.JSONDecodeError:
         return jsonify({"error": "Invalid JSON file"}), 400
     except Exception as e:

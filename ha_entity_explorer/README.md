@@ -12,7 +12,7 @@
 - **Interactive Charts**: Zoom, pan, and explore entity history with ECharts
 - **Attribute Explorer**: Click on chart points to view all entity attributes
 - **Custom Date Range**: Select the time period you want to analyze
-- **Data Export**: Export entity or attribute history to JSON for external analysis
+- **Data Export/Import**: Export and import entity or attribute history as JSON or ZIP files
 - **Multi-language**: Available in English and French
 - **Entity Filtering**: Whitelist/blacklist entities for security
 

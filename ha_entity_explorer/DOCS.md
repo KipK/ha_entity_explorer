@@ -12,9 +12,24 @@ This document contains detailed information for running **HA Entity Explorer** a
 - **Interactive Charts**: Zoom, pan, and explore entity history with ECharts
 - **Attribute Explorer**: Click on chart points to view all entity attributes
 - **Custom Date Range**: Select the time period you want to analyze
-- **Data Export**: Export entity or attribute history to JSON for external analysis
+- **Data Export/Import**: Export and import entity or attribute history as JSON or ZIP files
 - **Multi-language**: Available in English and French
 - **Entity Filtering**: Whitelist/blacklist entities for security
+
+## Data Export & Import
+
+### Export
+You can export entity history or specific attribute history by clicking the export button in the chart toolbox. Data is exported as a ZIP file containing a JSON file by default. You can also choose to export as plain JSON by modifying the URL parameter `zip=false`.
+
+### Import
+Click the upload button (⬆️) in the navigation bar to import previously exported data. The application accepts both:
+- **JSON files**: Direct JSON export files
+- **ZIP files**: ZIP archives containing a single JSON file
+
+> [!IMPORTANT]
+> **Ingress File Size Limitation**: When using Home Assistant Ingress, large file uploads may be blocked or fail. If you experience issues importing large JSON files:
+> - **Use ZIP format**: ZIP files are smaller and more likely to succeed
+> - **Direct access**: Connect directly to the application using its port (e.g., `http://your-server:5000`) instead of through Ingress
 
 <img alt="image" src="https://github.com/user-attachments/assets/867d60c5-401a-46e5-855c-38ec1135cdff" />
 <img alt="image" src="https://github.com/user-attachments/assets/eb786fba-ba12-4d98-acd4-8fd0ae89b594" />

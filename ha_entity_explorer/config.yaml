@@ -1,5 +1,5 @@
 name: "HA Entity Explorer"
-version: "1.0.7"
+version: "1.0.8"
 slug: "ha_entity_explorer"
 description: "Explore and visualize history of any Home Assistant entity."
 url: "https://github.com/yourusername/ha_entity_explorer"
