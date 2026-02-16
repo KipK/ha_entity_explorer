@@ -598,8 +598,9 @@ async function fetchDetails(timestamp) {
 
             const response = await axios.get(url, { params });
             currentDetailsData = response.data;
-            attributePath = [];
-            displayAttributes(currentDetailsData, []);
+            // Preserve the current attribute path to stay in the same navigation context
+            // This allows users to compare the same attribute across different time points
+            displayAttributes(currentDetailsData, attributePath);
         } catch (error) {
             console.error('Failed to fetch details:', error);
         }
