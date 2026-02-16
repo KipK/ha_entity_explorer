@@ -1190,7 +1190,11 @@ function setupEventListeners() {
     });
 
     // Refresh button
-    refreshBtn.addEventListener('click', loadEntityHistory);
+    refreshBtn.addEventListener('click', () => {
+        // Update end date to current time to fetch fresh data
+        dateRange.end = new Date();
+        loadEntityHistory();
+    });
 
     // Import button
     if (importFileInput) {
