@@ -212,6 +212,13 @@ function selectEntity(entityId) {
     dateRangeBtn.disabled = false;
     refreshBtn.classList.remove('d-none');
 
+    // Reset attributes panel - will be populated when user clicks on chart
+    currentDetailsData = null;
+    attributePath = [];
+    const clickText = window.i18n ? window.i18n.t('clickToSeeDetails') : 'Click on the chart to see details.';
+    detailsContent.innerHTML = `<p class="text-muted">${clickText}</p>`;
+    cursorTimeDisplay.textContent = '--:--';
+
     // Load history
     loadEntityHistory();
 }
