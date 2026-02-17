@@ -29,19 +29,27 @@
 </head>
 
 <body class="bg-dark text-light">
-    <div class="container-fluid vh-100 d-flex flex-column">
-        <!-- Navbar -->
-        <nav class="navbar navbar-dark bg-secondary mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand d-flex align-items-center" href="#">
-                    <img src="{{ url_for('static', filename='img/icon_64.png') }}" alt="Logo" width="32" height="32"
-                        class="me-2">
-                    <span class="h4 mb-0" data-i18n="appTitle">HA Entity Explorer</span>
-                </a>
+<div class="container-fluid d-flex flex-column app-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-secondary navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="{{ url_for('static', filename='img/icon_64.png') }}" alt="Logo" width="32" height="32"
+                    class="me-2">
+                <span class="h4 mb-0 d-none d-sm-inline" data-i18n="appTitle">HA Entity Explorer</span>
+            </a>
 
+            <!-- Navbar Toggle Button for Mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Collapsible Navbar Content -->
+            <div class="collapse navbar-collapse" id="navbarContent">
                 <!-- Entity Search -->
-                <div class="d-flex align-items-center flex-grow-1 mx-4">
-                    <div class="position-relative flex-grow-1" style="max-width: 500px;">
+                <div class="d-flex align-items-center flex-grow-1 my-2 my-lg-0 me-lg-3">
+                    <div class="position-relative flex-grow-1">
                         <input type="text" id="entity-search" class="form-control bg-dark text-light border-secondary"
                             data-i18n-placeholder="searchPlaceholder" placeholder="Search for an entity..."
                             autocomplete="off">
@@ -59,7 +67,7 @@
                 </div>
 
                 <!-- Selected entity badge -->
-                <div id="selected-entity-container" class="d-none me-3">
+                <div id="selected-entity-container" class="d-none mb-2 mb-lg-0">
                     <span class="badge bg-primary fs-6" id="selected-entity-badge">
                         <span id="selected-entity-name"></span>
                         <button type="button" class="btn-close btn-close-white ms-2" onclick="clearSelectedEntity()"
@@ -67,51 +75,53 @@
                     </span>
                 </div>
             </div>
-        </nav>
+        </div>
+    </nav>
 
-        <div class="row flex-grow-1 m-0 overflow-hidden">
-            <!-- Chart Area -->
-            <div class="col-md-9 d-flex flex-column h-100 p-4">
-                <!-- Date Range Controls -->
-                <div class="d-flex align-items-center mb-3" id="date-controls">
-                    <button id="date-range-btn" class="btn btn-outline-light btn-sm" disabled>
-                        <i class="bi bi-calendar-range"></i> <span data-i18n="period">Period</span>
-                    </button>
-                    <span id="date-range-display" class="ms-3 text-light small">
-                        <!-- Will show: "from 22/01/2025 15:52 to 27/01/2025 16:05" -->
-                    </span>
-                    <button id="refresh-btn" class="btn btn-outline-success btn-sm ms-auto d-none">
-                        <i class="bi bi-arrow-clockwise"></i> <span data-i18n="refresh">Refresh</span>
-                    </button>
-                    <!-- ZIP Export Checkbox -->
-                    <div class="form-check form-check-inline ms-2 mb-0" id="zip-export-container" style="display: none;">
-                        <input class="form-check-input" type="checkbox" id="zip-export-checkbox" checked>
-                        <label class="form-check-label small" for="zip-export-checkbox" data-i18n="exportAsZip">Export as .zip</label>
-                    </div>
-                </div>
-
-                <!-- Main Chart -->
-                <div id="main-chart" class="flex-grow-1">
-                    <!-- Empty state -->
-                    <div id="chart-placeholder" class="d-flex align-items-center justify-content-center h-100">
-                        <div class="text-center text-muted">
-                            <i class="bi bi-graph-up" style="font-size: 4rem;"></i>
-                            <p class="mt-3" data-i18n="selectEntityPrompt">Select an entity to view its history</p>
-                        </div>
-                    </div>
+    <!-- Main Content Area -->
+    <div class="main-content-wrapper flex-grow-1">
+        <!-- Chart Area -->
+        <div class="chart-area p-2 p-md-4">
+            <!-- Date Range Controls -->
+            <div class="d-flex flex-wrap align-items-center mb-3 gap-2" id="date-controls">
+                <button id="date-range-btn" class="btn btn-outline-light btn-sm" disabled>
+                    <i class="bi bi-calendar-range"></i> <span data-i18n="period">Period</span>
+                </button>
+                <span id="date-range-display" class="text-light small">
+                    <!-- Will show: "from 22/01/2025 15:52 to 27/01/2025 16:05" -->
+                </span>
+                <button id="refresh-btn" class="btn btn-outline-success btn-sm ms-auto d-none">
+                    <i class="bi bi-arrow-clockwise"></i> <span data-i18n="refresh">Refresh</span>
+                </button>
+                <!-- ZIP Export Checkbox -->
+                <div class="form-check form-check-inline mb-0" id="zip-export-container" style="display: none;">
+                    <input class="form-check-input" type="checkbox" id="zip-export-checkbox" checked>
+                    <label class="form-check-label small" for="zip-export-checkbox" data-i18n="exportAsZip">Export as .zip</label>
                 </div>
             </div>
 
-            <!-- Sidebar -->
-            <div class="col-md-3 bg-secondary p-3 overflow-auto h-100" id="sidebar">
-                <h5><span data-i18n="detailsAt">Details at</span> <span id="cursor-time">--:--</span></h5>
-                <hr>
-                <div id="details-content">
-                    <p class="text-muted" data-i18n="clickToSeeDetails">Click on the chart to see details.</p>
+            <!-- Main Chart -->
+            <div id="main-chart" class="chart-container">
+                <!-- Empty state -->
+                <div id="chart-placeholder" class="d-flex align-items-center justify-content-center h-100">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-graph-up" style="font-size: 4rem;"></i>
+                        <p class="mt-3" data-i18n="selectEntityPrompt">Select an entity to view its history</p>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar bg-secondary p-3" id="sidebar">
+            <h5><span data-i18n="detailsAt">Details at</span> <span id="cursor-time">--:--</span></h5>
+            <hr>
+            <div id="details-content">
+                <p class="text-muted" data-i18n="clickToSeeDetails">Click on the chart to see details.</p>
+            </div>
+        </div>
     </div>
+</div>
 
     <!-- History Modal -->
     <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
