@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.9
+- Fix attributes not visibible on Mobile. Added responsive layout
+
 ## 1.0.8
 - Add ZIP file support for import and export
   Export data as ZIP by default (smaller file size)
