@@ -1,4 +1,7 @@
 # Changelog
+##  1.0.10
+- fix display with HA Ingress
+- fix non scrollable page on mobile
 
 ## 1.0.9
 - Fix attributes not visibible on Mobile. Added responsive layout
