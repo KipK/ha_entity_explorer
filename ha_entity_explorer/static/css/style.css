@@ -5,7 +5,6 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
 }
 
 body {
@@ -16,6 +15,8 @@ body {
 /* App container - uses flexbox for vertical layout */
 .app-container {
     height: 100vh;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
@@ -25,7 +26,8 @@ body {
     grid-template-columns: 1fr 300px;
     grid-template-rows: 1fr;
     gap: 0;
-    height: calc(100vh - 60px);
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -263,31 +265,76 @@ body {
     }
 }
 
-/* Large phones and small tablets (576px - 767.98px) */
+/* Small tablets and large phones (576px - 767.98px) */
+/* Keep side-by-side layout but with narrower sidebar */
 @media (max-width: 767.98px) {
+    .main-content-wrapper {
+        grid-template-columns: 1fr 240px;
+    }
+    
+    #sidebar {
+        font-size: 0.85rem;
+    }
+    
+    #sidebar h5 {
+        font-size: 0.95rem;
+    }
+}
+
+/* Stack layout only for very narrow screens (under 576px) */
+@media (max-width: 575.98px) {
+    /* Allow body to scroll for stacked layout */
+    body {
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+    }
+    
+    .app-container {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+    
     /* Stack layout vertically: chart on top, sidebar below */
     .main-content-wrapper {
         grid-template-columns: 1fr;
-        grid-template-rows: 1fr auto;
-        height: calc(100vh - 56px);
+        grid-template-rows: auto auto;
+        flex: none;
+        min-height: 0;
+        overflow: visible;
     }
     
-    /* Chart takes remaining space */
+    /* Chart takes natural height */
     .chart-area {
-        min-height: 200px;
-        flex: 1;
+        min-height: 250px;
+        flex: none;
+        overflow: visible;
+        width: 100%;
     }
     
     #main-chart {
-        min-height: 200px;
+        min-height: 250px;
+        width: 100%;
     }
     
     /* Sidebar becomes a horizontal panel at bottom */
     #sidebar {
         border-left: none;
         border-top: 1px solid #444;
-        max-height: 40vh;
+        max-height: none;
         min-height: 120px;
+        padding: 0.75rem;
+        overflow-y: visible;
+    }
+    
+    #sidebar h5 {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    #sidebar hr {
+        margin: 0.5rem 0;
     }
     
     /* Adjust padding for mobile */
@@ -310,36 +357,6 @@ body {
     /* Navbar adjustments */
     .navbar-brand .h4 {
         font-size: 1rem;
-    }
-}
-
-/* Small phones (under 576px) */
-@media (max-width: 575.98px) {
-    .main-content-wrapper {
-        height: calc(100vh - 56px);
-    }
-    
-    .chart-area {
-        padding: 0.5rem;
-    }
-    
-    #main-chart {
-        min-height: 180px;
-    }
-    
-    /* Sidebar takes less space on very small screens */
-    #sidebar {
-        max-height: 35vh;
-        padding: 0.75rem;
-    }
-    
-    #sidebar h5 {
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    #sidebar hr {
-        margin: 0.5rem 0;
     }
     
     /* Chart placeholder icon smaller on mobile */
@@ -383,7 +400,6 @@ body {
     }
     
     #sidebar {
-        max-height: 30vh;
         padding: 0.5rem;
     }
     
@@ -394,19 +410,33 @@ body {
 
 /* Landscape orientation on phones */
 @media (max-height: 500px) and (orientation: landscape) {
+    body {
+        height: 100vh;
+        overflow: hidden;
+    }
+    
+    .app-container {
+        height: 100vh;
+        overflow: hidden;
+    }
+    
     .main-content-wrapper {
         grid-template-columns: 1fr 250px;
         grid-template-rows: 1fr;
+        flex: 1;
+        overflow: hidden;
     }
     
     #sidebar {
         border-left: 1px solid #444;
         border-top: none;
         max-height: none;
+        overflow-y: auto;
     }
     
     .chart-area {
-        min-height: auto;
+        min-height: 0;
+        overflow: hidden;
     }
 }
 
