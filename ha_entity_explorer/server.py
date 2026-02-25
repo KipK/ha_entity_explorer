@@ -31,6 +31,23 @@ app = Flask(__name__)
 # Load configuration
 config = load_config()
 
+# Read addon version from config.yaml for static asset cache-busting
+def _get_addon_version():
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config_yaml_path = os.path.join(base_dir, "config.yaml")
+        with open(config_yaml_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+            return str(data.get('version', '1.0.0'))
+    except Exception:
+        return '1.0.0'
+
+APP_VERSION = _get_addon_version()
+
+@app.context_processor
+def inject_version():
+    return {'app_version': APP_VERSION}
+
 # Configuration shortcuts
 HOST = config.app.host
 PORT = config.app.port

@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <!-- Custom styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}">
 
     <!-- ECharts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
@@ -213,9 +213,9 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- i18n (must load before main.js) -->
-    <script src="{{ url_for('static', filename='js/i18n.js') }}?v=1.1.0"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}?v={{ app_version }}"></script>
     <!-- Main JS -->
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=1.1.0"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v={{ app_version }}"></script>
 </body>
 
 </html>
