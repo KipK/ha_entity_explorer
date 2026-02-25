@@ -1011,6 +1011,19 @@ function renderHistoryList(data) {
 
     const t = window.i18n ? window.i18n.t : (k) => k;
     const asZip = zipExportCheckbox ? zipExportCheckbox.checked : true;
+
+    // Apply the same zoom window as the main chart so the list matches the visible period
+    let timestamps = data.timestamps;
+    let values = data.values;
+
+    if (timestamps.length > 0 && (mainChartZoomState.start !== 0 || mainChartZoomState.end !== 100)) {
+        const count = timestamps.length;
+        const startIdx = Math.floor(count * mainChartZoomState.start / 100);
+        const endIdx = Math.min(count - 1, Math.ceil(count * mainChartZoomState.end / 100));
+        timestamps = timestamps.slice(startIdx, endIdx + 1);
+        values = values.slice(startIdx, endIdx + 1);
+    }
+
     let html = `
     <div class="d-flex justify-content-end mb-2">
         <button class="btn btn-sm btn-outline-light" onclick="exportData('attribute', '${currentEntityId}', null, null, '${data.key}', ${asZip})">
@@ -1020,8 +1033,8 @@ function renderHistoryList(data) {
     <table class="table table-dark table-sm table-striped">`;
     html += `<thead><tr><th>${t('time')}</th><th>${t('value')}</th></tr></thead><tbody>`;
 
-    data.timestamps.forEach((ts, index) => {
-        const val = data.values[index];
+    timestamps.forEach((ts, index) => {
+        const val = values[index];
         const dateStr = new Date(ts).toLocaleString();
         html += `<tr><td>${dateStr}</td><td>${escapeHtml(String(val))}</td></tr>`;
     });
