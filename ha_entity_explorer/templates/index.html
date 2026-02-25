@@ -39,14 +39,23 @@
                 <span class="h4 mb-0 d-none d-sm-inline" data-i18n="appTitle">HA Entity Explorer</span>
             </a>
 
+            <!-- Selected entity badge - always visible, outside collapse -->
+            <div id="selected-entity-container" class="d-none mx-2 order-lg-last">
+                <span class="badge bg-primary selected-entity-badge" id="selected-entity-badge">
+                    <span id="selected-entity-name" class="entity-name-badge"></span>
+                    <button type="button" class="btn-close btn-close-white ms-1" onclick="clearSelectedEntity()"
+                        aria-label="Close"></button>
+                </span>
+            </div>
+
             <!-- Navbar Toggle Button for Mobile -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+            <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
                 aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <!-- Collapsible Navbar Content -->
-            <div class="collapse navbar-collapse" id="navbarContent">
+            <div class="collapse navbar-collapse order-lg-1" id="navbarContent">
                 <!-- Entity Search -->
                 <div class="d-flex align-items-center flex-grow-1 my-2 my-lg-0 me-lg-3">
                     <div class="position-relative flex-grow-1">
@@ -65,15 +74,6 @@
                     <input type="file" id="import-file-input" accept=".json,.zip"
                         style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">
                 </div>
-
-                <!-- Selected entity badge -->
-                <div id="selected-entity-container" class="d-none mb-2 mb-lg-0">
-                    <span class="badge bg-primary fs-6" id="selected-entity-badge">
-                        <span id="selected-entity-name"></span>
-                        <button type="button" class="btn-close btn-close-white ms-2" onclick="clearSelectedEntity()"
-                            aria-label="Close"></button>
-                    </span>
-                </div>
             </div>
         </div>
     </nav>
@@ -87,16 +87,24 @@
                 <button id="date-range-btn" class="btn btn-outline-light btn-sm" disabled>
                     <i class="bi bi-calendar-range"></i> <span data-i18n="period">Period</span>
                 </button>
-                <span id="date-range-display" class="text-light small">
+                <span id="date-range-display" class="text-light small date-range-clickable">
                     <!-- Will show: "from 22/01/2025 15:52 to 27/01/2025 16:05" -->
                 </span>
-                <button id="refresh-btn" class="btn btn-outline-success btn-sm ms-auto d-none">
-                    <i class="bi bi-arrow-clockwise"></i> <span data-i18n="refresh">Refresh</span>
-                </button>
-                <!-- ZIP Export Checkbox -->
-                <div class="form-check form-check-inline mb-0" id="zip-export-container" style="display: none;">
-                    <input class="form-check-input" type="checkbox" id="zip-export-checkbox" checked>
-                    <label class="form-check-label small" for="zip-export-checkbox" data-i18n="exportAsZip">Export as .zip</label>
+                <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+                    <button id="refresh-btn" class="btn btn-outline-success btn-sm d-none">
+                        <i class="bi bi-arrow-clockwise"></i> <span data-i18n="refresh">Refresh</span>
+                    </button>
+                    <button id="export-quick-btn" class="btn btn-outline-info btn-sm d-none" title="Export data">
+                        <i class="bi bi-download"></i>
+                    </button>
+                    <!-- ZIP Export Checkbox -->
+                    <div class="form-check form-check-inline mb-0" id="zip-export-container" style="display: none;">
+                        <input class="form-check-input" type="checkbox" id="zip-export-checkbox" checked>
+                        <label class="form-check-label small" for="zip-export-checkbox" data-i18n="exportAsZip">Export as .zip</label>
+                    </div>
+                    <button id="focus-btn" class="btn btn-outline-secondary btn-sm" title="Focus mode">
+                        <i class="bi bi-fullscreen"></i>
+                    </button>
                 </div>
             </div>
 
@@ -112,12 +120,22 @@
             </div>
         </div>
 
+        <!-- Sidebar Resizer -->
+        <div class="sidebar-resizer d-none d-sm-block" id="sidebar-resizer"></div>
+
         <!-- Sidebar -->
-        <div class="sidebar bg-secondary p-3" id="sidebar">
-            <h5><span data-i18n="detailsAt">Details at</span> <span id="cursor-time">--:--</span></h5>
-            <hr>
-            <div id="details-content">
-                <p class="text-muted" data-i18n="clickToSeeDetails">Click on the chart to see details.</p>
+        <div class="sidebar bg-secondary" id="sidebar">
+            <!-- Collapse toggle (hidden on mobile where layout is stacked) -->
+            <button class="sidebar-toggle-btn d-none d-sm-flex" id="sidebar-toggle" title="Toggle sidebar">
+                <i class="bi bi-chevron-right" id="sidebar-toggle-icon"></i>
+            </button>
+            <!-- Sidebar inner content -->
+            <div class="sidebar-inner-content p-3" id="sidebar-inner-content">
+                <h5><span data-i18n="detailsAt">Details at</span> <span id="cursor-time">--:--</span></h5>
+                <hr>
+                <div id="details-content">
+                    <p class="text-muted" data-i18n="clickToSeeDetails">Click on the chart to see details.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -195,9 +213,9 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- i18n (must load before main.js) -->
-    <script src="{{ url_for('static', filename='js/i18n.js') }}?v=1.0.6"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}?v=1.1.0"></script>
     <!-- Main JS -->
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=1.0.6"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=1.1.0"></script>
 </body>
 
 </html>

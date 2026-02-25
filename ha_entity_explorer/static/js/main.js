@@ -33,6 +33,15 @@ const detailsContent = document.getElementById('details-content');
 const cursorTimeDisplay = document.getElementById('cursor-time');
 const zipExportContainer = document.getElementById('zip-export-container');
 const zipExportCheckbox = document.getElementById('zip-export-checkbox');
+const exportQuickBtn = document.getElementById('export-quick-btn');
+const focusBtn = document.getElementById('focus-btn');
+
+// Sidebar elements
+const mainWrapper = document.querySelector('.main-content-wrapper');
+const sidebarEl = document.getElementById('sidebar');
+const sidebarResizer = document.getElementById('sidebar-resizer');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon');
 
 // Modals
 const dateRangeModal = new bootstrap.Modal(document.getElementById('dateRangeModal'));
@@ -83,6 +92,10 @@ async function init() {
 
     // Initialize main chart
     initMainChart();
+
+    // Initialize sidebar controls
+    initSidebar();
+    initSidebarResize();
 }
 
 async function loadConfig() {
@@ -131,8 +144,141 @@ function initDatePickers() {
 function initMainChart() {
     myChart = echarts.init(chartDom, 'dark');
 
-    // Handle resize
+    // Handle resize - reset inline grid on very small screens
     window.addEventListener('resize', () => {
+        if (myChart) myChart.resize();
+        if (window.innerWidth <= 576) {
+            mainWrapper.style.gridTemplateColumns = '';
+        }
+    });
+}
+
+// =============================================================================
+// Sidebar Controls (resize, collapse, focus mode)
+// =============================================================================
+
+let sidebarCollapsed = false;
+let focusMode = false;
+let preFocusGridColumns = null;
+let isResizing = false;
+let resizeStartX = 0;
+let resizeStartWidth = 0;
+
+function getSavedSidebarWidth() {
+    const saved = parseInt(localStorage.getItem('sidebarWidth'));
+    return (saved && saved > 150 && saved < 700) ? saved : 300;
+}
+
+function getCurrentGridColumns() {
+    return mainWrapper.style.gridTemplateColumns ||
+        getComputedStyle(mainWrapper).gridTemplateColumns;
+}
+
+function initSidebar() {
+    if (window.innerWidth <= 576) return; // mobile: CSS handles stacked layout
+
+    const savedWidth = getSavedSidebarWidth();
+    mainWrapper.style.gridTemplateColumns = `1fr 4px ${savedWidth}px`;
+
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        toggleSidebar(false);
+    }
+}
+
+function toggleSidebar(resizeChart = true) {
+    sidebarCollapsed = !sidebarCollapsed;
+
+    if (sidebarCollapsed) {
+        sidebarEl.classList.add('collapsed');
+        mainWrapper.style.gridTemplateColumns = '1fr 4px 24px';
+        if (sidebarToggleIcon) sidebarToggleIcon.className = 'bi bi-chevron-left';
+    } else {
+        sidebarEl.classList.remove('collapsed');
+        const w = getSavedSidebarWidth();
+        mainWrapper.style.gridTemplateColumns = `1fr 4px ${w}px`;
+        if (sidebarToggleIcon) sidebarToggleIcon.className = 'bi bi-chevron-right';
+    }
+
+    localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+    if (resizeChart) {
+        setTimeout(() => { if (myChart) myChart.resize(); }, 50);
+    }
+}
+
+function toggleFocusMode() {
+    focusMode = !focusMode;
+
+    if (focusMode) {
+        preFocusGridColumns = mainWrapper.style.gridTemplateColumns;
+        document.body.classList.add('focus-mode');
+        mainWrapper.style.gridTemplateColumns = '1fr 0 0';
+        if (focusBtn) {
+            focusBtn.querySelector('i').className = 'bi bi-fullscreen-exit';
+            focusBtn.title = 'Exit focus mode';
+        }
+    } else {
+        document.body.classList.remove('focus-mode');
+        mainWrapper.style.gridTemplateColumns = preFocusGridColumns || '';
+        if (focusBtn) {
+            focusBtn.querySelector('i').className = 'bi bi-fullscreen';
+            focusBtn.title = 'Focus mode';
+        }
+    }
+
+    setTimeout(() => { if (myChart) myChart.resize(); }, 50);
+}
+
+function initSidebarResize() {
+    if (!sidebarResizer) return;
+
+    sidebarResizer.addEventListener('mousedown', (e) => {
+        if (sidebarCollapsed || focusMode) return;
+        isResizing = true;
+        resizeStartX = e.clientX;
+        resizeStartWidth = sidebarEl.offsetWidth;
+        sidebarResizer.classList.add('is-resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const delta = resizeStartX - e.clientX;
+        const newWidth = Math.max(180, Math.min(600, resizeStartWidth + delta));
+        mainWrapper.style.gridTemplateColumns = `1fr 4px ${newWidth}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!isResizing) return;
+        isResizing = false;
+        sidebarResizer.classList.remove('is-resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        localStorage.setItem('sidebarWidth', sidebarEl.offsetWidth);
+        if (myChart) myChart.resize();
+    });
+
+    // Touch support
+    sidebarResizer.addEventListener('touchstart', (e) => {
+        if (sidebarCollapsed || focusMode) return;
+        isResizing = true;
+        resizeStartX = e.touches[0].clientX;
+        resizeStartWidth = sidebarEl.offsetWidth;
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!isResizing) return;
+        const delta = resizeStartX - e.touches[0].clientX;
+        const newWidth = Math.max(180, Math.min(600, resizeStartWidth + delta));
+        mainWrapper.style.gridTemplateColumns = `1fr 4px ${newWidth}px`;
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+        if (!isResizing) return;
+        isResizing = false;
+        localStorage.setItem('sidebarWidth', sidebarEl.offsetWidth);
         if (myChart) myChart.resize();
     });
 }
@@ -213,6 +359,7 @@ function selectEntity(entityId) {
     selectedEntityContainer.classList.remove('d-none');
     dateRangeBtn.disabled = false;
     refreshBtn.classList.remove('d-none');
+    if (exportQuickBtn) exportQuickBtn.classList.remove('d-none');
     zipExportContainer.style.display = 'block';
 
     // Reset attributes panel - will be populated when user clicks on chart
@@ -242,6 +389,7 @@ function clearSelectedEntity() {
     selectedEntityContainer.classList.add('d-none');
     dateRangeBtn.disabled = true;
     refreshBtn.classList.add('d-none');
+    if (exportQuickBtn) exportQuickBtn.classList.add('d-none');
     zipExportContainer.style.display = 'none';
     dateRangeDisplay.textContent = '';
 
@@ -662,17 +810,18 @@ function displayAttributes(data, path) {
             const itemsText = window.i18n ? window.i18n.t('items') : 'items';
             html += `
                 <tr class="clickable-row dict-row" onclick="navigateAttributesInto('${key}')">
-                    <td><i class="bi bi-folder-fill text-warning me-2"></i>${key}</td>
+                    <td title="${escapeHtml(key)}"><i class="bi bi-folder-fill text-warning me-2"></i>${escapeHtml(key)}</td>
                     <td class="text-end text-muted">${keyCount} ${itemsText} →</td>
                 </tr>`;
         } else {
             // Simple value - clickable to show history
             const displayVal = formatAttributeValue(value);
             const fullPath = [...path, key].join('.');
+            const rawVal = (value === null || value === undefined) ? 'null' : String(value);
             html += `
                 <tr class="clickable-row" onclick="showAttributeHistory('${fullPath}')">
-                    <td>${escapeHtml(key)}</td>
-                    <td class="text-end">${displayVal}</td>
+                    <td title="${escapeHtml(key)}">${escapeHtml(key)}</td>
+                    <td class="text-end" title="${escapeHtml(rawVal)}">${displayVal}</td>
                 </tr>`;
         }
     }
@@ -1216,6 +1365,34 @@ function setupEventListeners() {
     // Import button
     if (importFileInput) {
         importFileInput.addEventListener('change', handleImportUpload);
+    }
+
+    // Sidebar toggle
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => toggleSidebar());
+    }
+
+    // Focus mode
+    if (focusBtn) {
+        focusBtn.addEventListener('click', toggleFocusMode);
+    }
+
+    // Quick export button
+    if (exportQuickBtn) {
+        exportQuickBtn.addEventListener('click', () => {
+            if (!currentEntityId) return;
+            const asZip = zipExportCheckbox ? zipExportCheckbox.checked : true;
+            exportData('entity', currentEntityId, null, null, null, asZip);
+        });
+    }
+
+    // Click on date range display to open date picker
+    if (dateRangeDisplay) {
+        dateRangeDisplay.addEventListener('click', () => {
+            if (currentEntityId && !currentImportId) {
+                openDateRangeModal();
+            }
+        });
     }
 
     // Cleanup on page unload (close browser, close tab, refresh, etc.)

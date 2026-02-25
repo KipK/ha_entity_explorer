@@ -20,10 +20,10 @@ body {
     overflow: hidden;
 }
 
-/* Main content wrapper - uses CSS Grid for responsive layout */
+/* Main content wrapper - uses CSS Grid: chart | resizer | sidebar */
 .main-content-wrapper {
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 4px 300px;
     grid-template-rows: 1fr;
     gap: 0;
     flex: 1;
@@ -55,11 +55,95 @@ body {
     flex-direction: column;
 }
 
-/* Sidebar */
+/* Sidebar - flex row: toggle button | inner content */
 #sidebar {
+    display: flex;
+    flex-direction: row;
     border-left: 1px solid #444;
+    overflow: hidden;
+    min-width: 0;
+}
+
+/* Sidebar inner scrollable content */
+.sidebar-inner-content {
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    min-width: 0;
+}
+
+/* Sidebar collapse toggle button */
+.sidebar-toggle-btn {
+    width: 24px;
+    min-width: 24px;
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12px 0 0;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.sidebar-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.sidebar-toggle-btn i {
+    font-size: 0.75rem;
+}
+
+/* Collapsed sidebar - only toggle button visible */
+#sidebar.collapsed {
+    min-width: 24px;
+}
+
+#sidebar.collapsed .sidebar-inner-content {
+    display: none;
+}
+
+#sidebar.collapsed .sidebar-toggle-btn {
+    border-right: none;
+    width: 24px;
+}
+
+/* Sidebar resize handle */
+.sidebar-resizer {
+    cursor: col-resize;
+    background: transparent;
+    transition: background-color 0.2s;
+    z-index: 10;
+}
+
+.sidebar-resizer:hover,
+.sidebar-resizer.is-resizing {
+    background-color: rgba(13, 110, 253, 0.5);
+}
+
+/* Sidebar attribute table - prevent horizontal overflow */
+#sidebar .table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#sidebar .table td:first-child {
+    width: 48%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 0;
+}
+
+#sidebar .table td:last-child {
+    width: 52%;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 /* Ensure flex parents don't break scroll */
@@ -190,9 +274,65 @@ body {
     font-style: italic;
 }
 
-/* Date range display */
+/* Date range display - clickable to open modal */
 #date-range-display {
     font-family: monospace;
+}
+
+.date-range-clickable {
+    cursor: pointer;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+    padding-bottom: 1px;
+    transition: border-color 0.15s;
+}
+
+.date-range-clickable:hover {
+    border-bottom-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Entity badge in navbar */
+.selected-entity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.875rem;
+    padding: 0.35em 0.65em;
+    max-width: 100%;
+}
+
+.entity-name-badge {
+    display: inline-block;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+@media (min-width: 576px) {
+    .entity-name-badge { max-width: 180px; }
+}
+
+@media (min-width: 992px) {
+    .entity-name-badge { max-width: 280px; }
+}
+
+/* Focus mode - hide navbar and sidebar */
+body.focus-mode .navbar {
+    display: none !important;
+}
+
+body.focus-mode .sidebar-resizer,
+body.focus-mode #sidebar {
+    display: none !important;
+}
+
+body.focus-mode .app-container {
+    height: 100vh;
+}
+
+body.focus-mode .chart-area {
+    padding: 0.5rem !important;
 }
 
 /* Chart placeholder */
@@ -246,37 +386,37 @@ body {
 /* Large tablets and small desktops (992px - 1199px) */
 @media (max-width: 1199.98px) {
     .main-content-wrapper {
-        grid-template-columns: 1fr 280px;
+        grid-template-columns: 1fr 4px 280px;
     }
 }
 
 /* Tablets (768px - 991.98px) */
 @media (max-width: 991.98px) {
     .main-content-wrapper {
-        grid-template-columns: 1fr 260px;
+        grid-template-columns: 1fr 4px 260px;
     }
-    
-    #sidebar {
+
+    .sidebar-inner-content {
         font-size: 0.9rem;
     }
-    
-    #sidebar h5 {
+
+    .sidebar-inner-content h5 {
         font-size: 1rem;
     }
 }
 
 /* Small tablets and large phones (576px - 767.98px) */
-/* Keep side-by-side layout but with narrower sidebar */
 @media (max-width: 767.98px) {
     .main-content-wrapper {
-        grid-template-columns: 1fr 240px;
+        grid-template-columns: 1fr 4px 220px;
     }
-    
-    #sidebar {
+
+    .sidebar-inner-content {
         font-size: 0.85rem;
+        padding: 0.75rem;
     }
-    
-    #sidebar h5 {
+
+    .sidebar-inner-content h5 {
         font-size: 0.95rem;
     }
 }
@@ -289,13 +429,13 @@ body {
         min-height: 100vh;
         overflow: auto;
     }
-    
+
     .app-container {
         height: auto;
         min-height: 100vh;
         overflow: visible;
     }
-    
+
     /* Stack layout vertically: chart on top, sidebar below */
     .main-content-wrapper {
         grid-template-columns: 1fr;
@@ -304,7 +444,13 @@ body {
         min-height: 0;
         overflow: visible;
     }
-    
+
+    /* Hide resizer and toggle on mobile stacked layout */
+    .sidebar-resizer,
+    .sidebar-toggle-btn {
+        display: none !important;
+    }
+
     /* Chart takes natural height */
     .chart-area {
         min-height: 250px;
@@ -312,81 +458,84 @@ body {
         overflow: visible;
         width: 100%;
     }
-    
+
     #main-chart {
         min-height: 250px;
         width: 100%;
     }
-    
+
     /* Sidebar becomes a horizontal panel at bottom */
     #sidebar {
         border-left: none;
         border-top: 1px solid #444;
         max-height: none;
         min-height: 120px;
-        padding: 0.75rem;
         overflow-y: visible;
     }
-    
-    #sidebar h5 {
+
+    .sidebar-inner-content {
+        padding: 0.75rem;
+    }
+
+    .sidebar-inner-content h5 {
         font-size: 0.9rem;
         margin-bottom: 0.5rem;
     }
-    
-    #sidebar hr {
+
+    .sidebar-inner-content hr {
         margin: 0.5rem 0;
     }
-    
+
     /* Adjust padding for mobile */
     .chart-area {
         padding: 0.5rem;
     }
-    
+
     /* Date controls wrap better on mobile */
     #date-controls {
         flex-wrap: wrap;
         gap: 0.5rem;
     }
-    
+
     #date-range-display {
         width: 100%;
-        order: 3;
+        order: 2;
         margin-top: 0.25rem;
     }
-    
+
     /* Navbar adjustments */
     .navbar-brand .h4 {
         font-size: 1rem;
     }
-    
+
     /* Chart placeholder icon smaller on mobile */
     #chart-placeholder i {
         font-size: 2.5rem !important;
     }
-    
+
     #chart-placeholder p {
         font-size: 0.9rem;
     }
-    
+
     /* Date controls more compact */
     #date-controls .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.75rem;
     }
-    
+
     /* Entity dropdown adjustments */
     .entity-dropdown {
         max-height: 250px;
     }
-    
+
     .entity-item {
         padding: 6px 10px;
     }
-    
+
     .entity-item .entity-name {
         font-size: 0.9rem;
     }
-    
+
     .entity-item .entity-id {
         font-size: 0.75rem;
     }
@@ -414,26 +563,29 @@ body {
         height: 100vh;
         overflow: hidden;
     }
-    
+
     .app-container {
         height: 100vh;
         overflow: hidden;
     }
-    
+
     .main-content-wrapper {
-        grid-template-columns: 1fr 250px;
+        grid-template-columns: 1fr 4px 250px;
         grid-template-rows: 1fr;
         flex: 1;
         overflow: hidden;
     }
-    
+
     #sidebar {
         border-left: 1px solid #444;
         border-top: none;
         max-height: none;
+    }
+
+    .sidebar-inner-content {
         overflow-y: auto;
     }
-    
+
     .chart-area {
         min-height: 0;
         overflow: hidden;
@@ -447,23 +599,28 @@ body {
         padding: 12px;
         min-height: 44px;
     }
-    
+
     .btn-sm {
         min-height: 36px;
         padding: 0.375rem 0.75rem;
     }
-    
+
     .form-control {
         min-height: 44px;
     }
-    
+
     /* Better scrolling on touch */
-    #sidebar {
+    .sidebar-inner-content {
         -webkit-overflow-scrolling: touch;
     }
-    
+
     .entity-dropdown {
         -webkit-overflow-scrolling: touch;
+    }
+
+    /* Larger resize handle for touch */
+    .sidebar-resizer {
+        width: 8px;
     }
 }
 
