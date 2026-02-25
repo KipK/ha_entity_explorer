@@ -224,7 +224,7 @@ class HomeAssistantAPI:
         if history:
             # Parse the earliest timestamp we got
             from dateutil import parser as date_parser
-            earliest = date_parser.parse(history[0].get("last_changed", history[0].get("last_updated")))
+            earliest = date_parser.parse(history[0].get("last_updated", history[0].get("last_changed")))
             return (earliest, now)
         
         # If no data from 30 days ago, try progressively shorter periods
@@ -238,7 +238,7 @@ class HomeAssistantAPI:
             )
             if history:
                 from dateutil import parser as date_parser
-                earliest = date_parser.parse(history[0].get("last_changed", history[0].get("last_updated")))
+                earliest = date_parser.parse(history[0].get("last_updated", history[0].get("last_changed")))
                 return (earliest, now)
         
         # No history found

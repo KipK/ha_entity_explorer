@@ -240,12 +240,12 @@ def process_climate_history(history_data: list) -> dict:
     is_heating = []
     
     for entry in history_data:
-        ts = entry.get("last_changed") or entry.get("last_updated")
+        ts = entry.get("last_updated") or entry.get("last_changed")
         if not ts:
             continue
-            
+
         timestamps.append(ts)
-        
+
         attrs = entry.get("attributes", {})
         specific_states = attrs.get("specific_states", {})
         
@@ -291,10 +291,10 @@ def process_generic_history(history_data: list, entity_id: str) -> dict:
     is_numeric = None
     
     for entry in history_data:
-        ts = entry.get("last_changed") or entry.get("last_updated")
+        ts = entry.get("last_updated") or entry.get("last_changed")
         if not ts:
             continue
-            
+
         timestamps.append(ts)
         state = entry.get("state")
         
@@ -513,11 +513,11 @@ def get_entity_details(entity_id: str):
         # Find the closest entry to the requested timestamp
         target_ts = ts.timestamp()
         closest = min(history, key=lambda x: abs(
-            parser.parse(x.get("last_changed", x.get("last_updated", ""))).timestamp() - target_ts
+            parser.parse(x.get("last_updated", x.get("last_changed", ""))).timestamp() - target_ts
         ))
-        
+
         return jsonify(closest)
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -573,37 +573,33 @@ def get_attribute_history(entity_id: str):
         key_parts = key.split('.')
         
         for entry in history:
-            ts = entry.get("last_changed") or entry.get("last_updated")
+            ts = entry.get("last_updated") or entry.get("last_changed")
             if not ts:
                 continue
-            
+
             timestamps.append(ts)
-            
+
             # Navigate to the attribute value
             attrs = entry.get("attributes", {})
             val = attrs
-            
+
             for part in key_parts:
                 if isinstance(val, dict):
                     val = val.get(part)
                 else:
                     val = None
                     break
-            
+
             values.append(val)
-            
+
             # Determine if numeric (check non-null values)
             if is_numeric is None and val is not None:
                 is_numeric = isinstance(val, (int, float))
-        
+
         # If all values are null, assume numeric
         if is_numeric is None:
             is_numeric = True
-        
-        # Do NOT replace null values with 0. ECharts handles nulls as gaps/breaks in the line.
-        # if is_numeric:
-        #     values = [v if v is not None else 0 for v in values]
-        
+
         return jsonify({
             "key": key,
             "type": "numeric" if is_numeric else "text",
@@ -680,7 +676,7 @@ def export_entity_history(entity_id: str):
         # Add normalized timestamp field for consistency with attribute export
         export_data = []
         for entry in history:
-            ts = entry.get("last_changed") or entry.get("last_updated")
+            ts = entry.get("last_updated") or entry.get("last_changed")
             export_entry = {
                 "timestamp": ts,
                 **entry
@@ -764,7 +760,7 @@ def export_attribute_history(entity_id: str):
         key_parts = key.split('.')
 
         for entry in history:
-            ts = entry.get("last_changed") or entry.get("last_updated")
+            ts = entry.get("last_updated") or entry.get("last_changed")
             if not ts:
                 continue
 
@@ -892,9 +888,9 @@ def process_imported_json_data(data, filename):
             # Use data timestamps since we don't have request params
             # Sort by timestamp to be sure (assuming ISO format)
             sorted_ts = sorted([
-                e.get("last_changed") or e.get("last_updated")
+                e.get("last_updated") or e.get("last_changed")
                 for e in data
-                if e.get("last_changed") or e.get("last_updated")
+                if e.get("last_updated") or e.get("last_changed")
             ])
             if sorted_ts:
                 result["start"] = sorted_ts[0]
@@ -1024,15 +1020,15 @@ def get_imported_details(import_id: str):
         # Find closest entry in the cached data
         # Only check entries that have a timestamp
         valid_entries = [
-            x for x in data 
-            if x.get("last_changed") or x.get("last_updated")
+            x for x in data
+            if x.get("last_updated") or x.get("last_changed")
         ]
-        
+
         if not valid_entries:
             return jsonify({"error": "No valid timestamps in imported data"}), 404
-            
+
         closest = min(valid_entries, key=lambda x: abs(
-            parser.parse(x.get("last_changed", x.get("last_updated"))).timestamp() - target_ts
+            parser.parse(x.get("last_updated", x.get("last_changed"))).timestamp() - target_ts
         ))
         
         # We assume the imported data is already full structure
@@ -1065,33 +1061,33 @@ def get_imported_attribute_history(import_id: str):
         key_parts = key.split('.')
         
         for entry in data:
-            ts = entry.get("last_changed") or entry.get("last_updated")
+            ts = entry.get("last_updated") or entry.get("last_changed")
             if not ts:
                 continue
-            
+
             timestamps.append(ts)
-            
+
             # Navigate to the attribute value
             attrs = entry.get("attributes", {})
             val = attrs
-            
+
             for part in key_parts:
                 if isinstance(val, dict):
                     val = val.get(part)
                 else:
                     val = None
                     break
-            
+
             values.append(val)
-            
+
             # Determine if numeric (check non-null values)
             if is_numeric is None and val is not None:
                 is_numeric = isinstance(val, (int, float))
-        
+
         # If all values are null, assume numeric
         if is_numeric is None:
             is_numeric = True
-            
+
         return jsonify({
             "key": key,
             "type": "numeric" if is_numeric else "text",
