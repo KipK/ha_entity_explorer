@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue view 2 --repo jlpouffier/ha-entity-explorer)",
+      "Bash(gh issue view 2)"
+    ]
+  }
+}

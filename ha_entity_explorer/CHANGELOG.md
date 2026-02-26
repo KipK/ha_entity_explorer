@@ -1,4 +1,27 @@
 # Changelog
+
+## 1.1.3
+- remove  "minimal_response" and "significant_changes_only" from API call. 
+
+## 1.1.2
+- fix: force browser cache invalidation on update
+- fix attribute-only state changes not shown in history ( fix [#2](https://github.com/KipK/ha_entity_explorer/issues/2) )
+- Fixes [#2](https://github.com/KipK/ha_entity_explorer/issues/2) - all recorded state changes (including attribute-only) are
+now displayed with their correct timestamps in charts and detail views.
+- fix string attribute list not filtereing selected timeframe.
+improve UI responsiveness and fix sidebar attribute overflow
+- Fix sidebar attribute table overflow: table-layout fixed, ellipsis on
+  keys, word-wrap on values, title tooltips for full text on hover
+- Add resizable sidebar with drag handle (mouse + touch), width saved
+  in localStorage
+- Add collapsible sidebar toggle button, state persisted in localStorage
+- Add focus mode (fullscreen chart) hiding navbar and sidebar
+- Move entity badge outside navbar collapse so it's always visible on
+  mobile, with adaptive max-width per breakpoint
+- Add quick export button next to Refresh, visible when entity selected
+- Make date range display clickable to open date picker directly
+- Update grid to 3-column layout (1fr 4px sidebar) across all breakpoints
+
 ##  1.0.10
 - fix display with HA Ingress
 - fix non scrollable page on mobile
