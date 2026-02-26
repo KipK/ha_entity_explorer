@@ -179,9 +179,7 @@ class HomeAssistantAPI:
         # Build query parameters
         params = {
             "filter_entity_id": entity_id,
-            "end_time": end_str,
-            "minimal_response": str(minimal_response).lower(),
-            "significant_changes_only": str(significant_changes_only).lower()
+            "end_time": end_str
         }
         
         result = self._request("GET", endpoint, params=params)
