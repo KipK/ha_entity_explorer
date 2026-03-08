@@ -542,6 +542,7 @@ function renderClimateChart(data) {
                 step: 'start',
                 data: heatingData,
                 lineStyle: { width: 0 },
+                itemStyle: { color: 'rgba(255, 140, 0, 0.9)' },
                 areaStyle: { color: 'rgba(255, 140, 0, 0.4)', origin: 'start' },
                 symbol: 'none'
             },
@@ -551,6 +552,7 @@ function renderClimateChart(data) {
                 step: 'start',
                 data: data.temperature,
                 lineStyle: { color: '#FFD700', width: 2 },
+                itemStyle: { color: '#FFD700' },
                 symbol: 'none'
             },
             {
@@ -559,6 +561,7 @@ function renderClimateChart(data) {
                 step: 'start',
                 data: data.current_temperature,
                 lineStyle: { color: '#4169E1', width: 2 },
+                itemStyle: { color: '#4169E1' },
                 areaStyle: {
                     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                         { offset: 0, color: 'rgba(65, 105, 225, 0.1)' },
@@ -573,6 +576,7 @@ function renderClimateChart(data) {
                 step: 'start',
                 data: data.ext_current_temperature,
                 lineStyle: { color: '#A9A9A9', width: 1, type: 'dashed' },
+                itemStyle: { color: '#A9A9A9' },
                 symbol: 'none',
                 smooth: true
             }
