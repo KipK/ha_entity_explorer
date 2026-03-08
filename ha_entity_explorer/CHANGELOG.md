@@ -1,4 +1,7 @@
 # Changelog
+## 1.1.4
+- fix wrong color in climate graph legend
+- fix export only data from selected timeframe
 
 ## 1.1.3
 - remove  "minimal_response" and "significant_changes_only" from API call. 
