@@ -1148,37 +1148,8 @@ function getCommonToolbox(type, data, attributeKey = null, chartInstance = null)
         feature: {
             dataZoom: { yAxisIndex: 'none' },
             restore: {},
-            saveAsImage: {},
-            myExportData: {
-                show: true,
-                title: t('exportData') || 'Export Data',
-                icon: 'path://M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M16,11V18.1L13.9,16L11.1,18.8L8.3,16L11.1,13.2L8.9,11H16Z',
-                onclick: function () {
-                    let start, end;
-
-                    // If we have a chart instance, try to get zoomed range
-                    // Note: myChart is the global main chart, historyChart is for attributes
-                    const currentChart = chartInstance || (type === 'attribute' ? historyChart : myChart);
-
-                    if (currentChart && data && data.timestamps && data.timestamps.length > 0) {
-                        try {
-                            const range = getChartZoomRange(currentChart, data);
-                            start = range.start;
-                            end = range.end;
-                        } catch (e) {
-                            console.error('Error calculating zoom range:', e);
-                            start = dateRange.start;
-                            end = dateRange.end;
-                        }
-                    } else {
-                        start = dateRange.start;
-                        end = dateRange.end;
-                    }
-
-                    // Use checkbox value for ZIP export
-                    const asZip = zipExportCheckbox ? zipExportCheckbox.checked : true;
-                    exportData(type, data.entity_id || currentEntityId, start, end, attributeKey, asZip);
-                }
+            saveAsImage: {
+                icon: 'path://M21,3H3C2,3 1,4 1,5V19A2,2 0 0,0 3,21H21C22,21 23,20 23,19V5C23,4 22,3 21,3M5,17L8.5,12.5L11,15.5L14.5,11L19,17H5Z'
             }
         }
     };
@@ -1399,7 +1370,21 @@ function setupEventListeners() {
         exportQuickBtn.addEventListener('click', () => {
             if (!currentEntityId) return;
             const asZip = zipExportCheckbox ? zipExportCheckbox.checked : true;
-            exportData('entity', currentEntityId, null, null, null, asZip);
+            let start, end;
+            if (myChart && currentHistoryData && currentHistoryData.timestamps && currentHistoryData.timestamps.length > 0) {
+                try {
+                    const range = getChartZoomRange(myChart, currentHistoryData);
+                    start = range.start;
+                    end = range.end;
+                } catch (e) {
+                    start = dateRange.start;
+                    end = dateRange.end;
+                }
+            } else {
+                start = dateRange.start;
+                end = dateRange.end;
+            }
+            exportData('entity', currentEntityId, start, end, null, asZip);
         });
     }
 
