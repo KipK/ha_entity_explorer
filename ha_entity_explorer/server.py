@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import ipaddress
 import os
 import json
+from urllib.parse import urlparse
 import uuid
 import zipfile
 import io
@@ -362,7 +363,9 @@ def login():
                 
             session['user'] = username
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
+            parsed = urlparse(next_page) if next_page else None
+            safe_next = next_page if (parsed and not parsed.netloc and not parsed.scheme) else None
+            return redirect(safe_next or url_for('index'))
         else:
             # Failure: Increment attempts
             attempts = login_attempts.get(client_ip, 0) + 1
