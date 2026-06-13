@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import ipaddress
 import os
 import json
+import math
 from urllib.parse import urlparse
 import uuid
 import zipfile
@@ -833,18 +834,178 @@ def export_attribute_history(entity_id: str):
         return jsonify({"error": str(e)}), 400
 
 
+BETTER_HISTORY_FORMAT = "ha-better-history-series-v1"
+
+
+def _parse_import_timestamp(value):
+    """Return a Unix timestamp, or None when the value is invalid."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+
+    try:
+        return parser.parse(value).timestamp()
+    except (ValueError, TypeError, OverflowError, OSError):
+        return None
+
+
+def _normalize_better_history_range(value, field_name):
+    """Validate an optional ha-better-history date range."""
+    if value is None:
+        return None, None
+    if not isinstance(value, dict):
+        return None, f"Invalid {field_name}: expected an object"
+
+    start = value.get("start")
+    end = value.get("end")
+    parsed_start = _parse_import_timestamp(start)
+    parsed_end = _parse_import_timestamp(end)
+    if parsed_start is None or parsed_end is None or parsed_start >= parsed_end:
+        return None, f"Invalid {field_name}: expected a valid start and end range"
+
+    return {"start": start, "end": end}, None
+
+
+def process_better_history_series_data(data, filename):
+    """Validate and normalize a ha-better-history-series-v1 export."""
+    series_items = data.get("series")
+    if not isinstance(series_items, list) or not series_items:
+        return {"error": "Invalid ha-better-history format: expected non-empty series"}, 400
+
+    loaded_range, error = _normalize_better_history_range(
+        data.get("loadedRange"), "loadedRange"
+    )
+    if error:
+        return {"error": error}, 400
+
+    view_range, error = _normalize_better_history_range(
+        data.get("viewRange"), "viewRange"
+    )
+    if error:
+        return {"error": error}, 400
+
+    normalized_series = []
+    all_timestamps = []
+    allowed_value_types = {"number", "boolean", "string"}
+    allowed_line_modes = {"line", "column", "stair"}
+    allowed_scale_preferences = {"auto", "primary", "secondary"}
+
+    for index, item in enumerate(series_items):
+        if not isinstance(item, dict):
+            return {"error": f"Invalid series at index {index}: expected an object"}, 400
+
+        series_id = item.get("id")
+        entity_id = item.get("entityId")
+        label = item.get("label")
+        value_type = item.get("valueType")
+        points = item.get("points")
+
+        if not isinstance(series_id, str) or not series_id.strip():
+            return {"error": f"Invalid series at index {index}: missing id"}, 400
+        if not isinstance(entity_id, str) or not entity_id.strip():
+            return {"error": f"Invalid series at index {index}: missing entityId"}, 400
+        if not isinstance(label, str) or not label.strip():
+            return {"error": f"Invalid series at index {index}: missing label"}, 400
+        if value_type not in allowed_value_types:
+            return {"error": f"Invalid series at index {index}: unsupported valueType"}, 400
+        if not isinstance(points, list):
+            return {"error": f"Invalid series at index {index}: expected points list"}, 400
+
+        normalized_points = []
+        for point in points:
+            if not isinstance(point, dict):
+                continue
+
+            timestamp = point.get("timestamp")
+            parsed_timestamp = _parse_import_timestamp(timestamp)
+            value = point.get("value")
+            if parsed_timestamp is None:
+                continue
+
+            valid_value = (
+                value_type == "number"
+                and isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and math.isfinite(value)
+            ) or (
+                value_type == "boolean" and isinstance(value, bool)
+            ) or (
+                value_type == "string" and isinstance(value, str)
+            )
+            if not valid_value:
+                continue
+
+            normalized_points.append({
+                "timestamp": timestamp,
+                "value": value,
+                "_sort_time": parsed_timestamp,
+            })
+            all_timestamps.append((parsed_timestamp, timestamp))
+
+        normalized_points.sort(key=lambda point: point["_sort_time"])
+        for point in normalized_points:
+            del point["_sort_time"]
+
+        normalized_item = {
+            "id": series_id,
+            "entityId": entity_id,
+            "label": label,
+            "valueType": value_type,
+            "lineMode": item.get("lineMode")
+            if item.get("lineMode") in allowed_line_modes else "line",
+            "scalePreference": item.get("scalePreference")
+            if item.get("scalePreference") in allowed_scale_preferences else "auto",
+            "points": normalized_points,
+        }
+
+        for optional_key in ("attribute", "unit", "color"):
+            optional_value = item.get(optional_key)
+            if isinstance(optional_value, str) and optional_value.strip():
+                normalized_item[optional_key] = optional_value
+
+        normalized_series.append(normalized_item)
+
+    display_range = view_range or loaded_range
+    if display_range:
+        start = display_range["start"]
+        end = display_range["end"]
+    elif all_timestamps:
+        all_timestamps.sort(key=lambda item: item[0])
+        start = all_timestamps[0][1]
+        end = all_timestamps[-1][1]
+    else:
+        return {"error": "Invalid ha-better-history format: no usable date range"}, 400
+
+    return {
+        "type": "series",
+        "filename": filename,
+        "data": {
+            "format": BETTER_HISTORY_FORMAT,
+            "exportedAt": data.get("exportedAt"),
+            "loadedRange": loaded_range,
+            "viewRange": view_range,
+            "start": start,
+            "end": end,
+            "count": sum(len(item["points"]) for item in normalized_series),
+            "series": normalized_series,
+        },
+    }, 200
+
+
 def process_imported_json_data(data, filename):
     """
     Process imported JSON data and return the appropriate response.
     This is a helper function used by both direct JSON import and ZIP import.
     
     Args:
-        data: Parsed JSON data (list of entries)
+        data: Parsed JSON data
         filename: Original filename for display
         
     Returns:
         Tuple of (response_dict, status_code)
     """
+    if isinstance(data, dict) and data.get("format") == BETTER_HISTORY_FORMAT:
+        return process_better_history_series_data(data, filename)
+
     if not isinstance(data, list) or not data:
         return {"error": "Invalid JSON format: expected a non-empty list"}, 400
 
@@ -925,7 +1086,12 @@ def process_imported_json_data(data, filename):
         }, 200
 
     else:
-        return {"error": "Unrecognized JSON format. Must be an Entity export or Attribute export."}, 400
+        return {
+            "error": (
+                "Unrecognized JSON format. Must be an Entity export, Attribute export, "
+                "or ha-better-history-series-v1 export."
+            )
+        }, 400
 
 
 @app.route('/api/import', methods=['POST'])

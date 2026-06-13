@@ -26,6 +26,11 @@ Click the upload button (⬆️) in the navigation bar to import previously expo
 - **JSON files**: Direct JSON export files
 - **ZIP files**: ZIP archives containing a single JSON file
 
+Supported JSON data formats are:
+- HA Entity Explorer entity exports
+- HA Entity Explorer attribute exports
+- `ha-better-history-series-v1` exports from `ha-better-history`, including files containing multiple entities and mixed numeric or categorical series
+
 > [!IMPORTANT]
 > **Ingress File Size Limitation**: When using Home Assistant Ingress, large file uploads may be blocked or fail. If you experience issues importing large JSON files:
 > - **Use ZIP format**: ZIP files are smaller and more likely to succeed

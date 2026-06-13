@@ -1,4 +1,8 @@
 # Changelog
+## 1.2.0
+- Add import support for `ha-better-history` JSON exports, including multi-entity series.
+- fix moderate security vulnerability with flask redirect.
+
 ## 1.1.4
 - fix wrong color in climate graph legend
 - fix export only data from selected timeframe

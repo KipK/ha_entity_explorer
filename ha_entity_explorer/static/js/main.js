@@ -707,9 +707,153 @@ function renderTextChart(data) {
     setupChartClickHandler(data);
 }
 
+function renderImportedSeriesChart(data) {
+    const numericAxes = [];
+    const numericAxisIndexes = new Map();
+    const categoricalValues = [];
+    const categoricalValueSet = new Set();
+    let hasCategoricalSeries = false;
+    const nameCounts = new Map();
+
+    data.series.forEach(series => {
+        nameCounts.set(series.label, (nameCounts.get(series.label) || 0) + 1);
+
+        if (series.valueType === 'number') {
+            const axisKey = `${series.scalePreference || 'auto'}:${series.unit || ''}`;
+            if (!numericAxisIndexes.has(axisKey)) {
+                numericAxisIndexes.set(axisKey, numericAxes.length);
+                numericAxes.push({ key: axisKey, unit: series.unit || '' });
+            }
+        } else {
+            hasCategoricalSeries = true;
+            series.points.forEach(point => {
+                const value = String(point.value);
+                if (!categoricalValueSet.has(value)) {
+                    categoricalValueSet.add(value);
+                    categoricalValues.push(value);
+                }
+            });
+        }
+    });
+
+    const yAxis = numericAxes.map((axis, index) => ({
+        type: 'value',
+        name: axis.unit,
+        scale: true,
+        position: index % 2 === 0 ? 'left' : 'right',
+        offset: Math.floor(index / 2) * 55,
+        splitLine: {
+            show: index === 0,
+            lineStyle: { color: '#333' }
+        },
+        axisLabel: {
+            formatter: axis.unit ? `{value} ${axis.unit}` : '{value}'
+        }
+    }));
+
+    let categoricalAxisIndex = null;
+    if (hasCategoricalSeries) {
+        categoricalAxisIndex = yAxis.length;
+        yAxis.push({
+            type: 'category',
+            data: categoricalValues,
+            position: yAxis.length % 2 === 0 ? 'left' : 'right',
+            offset: Math.floor(yAxis.length / 2) * 55,
+            splitLine: { show: false }
+        });
+    }
+
+    const chartSeries = data.series.map(series => {
+        const duplicateLabel = nameCounts.get(series.label) > 1;
+        const name = duplicateLabel ? `${series.label} (${series.entityId})` : series.label;
+        const isNumeric = series.valueType === 'number';
+        const axisKey = `${series.scalePreference || 'auto'}:${series.unit || ''}`;
+        const yAxisIndex = isNumeric
+            ? numericAxisIndexes.get(axisKey)
+            : categoricalAxisIndex;
+
+        return {
+            name,
+            type: series.lineMode === 'column' ? 'bar' : 'line',
+            step: series.lineMode === 'stair' ? 'start' : false,
+            yAxisIndex,
+            data: series.points.map(point => ({
+                value: [point.timestamp, isNumeric ? point.value : String(point.value)],
+                rawValue: point.value,
+                unit: series.unit || ''
+            })),
+            itemStyle: series.color ? { color: series.color } : undefined,
+            lineStyle: series.color ? { color: series.color, width: 2 } : { width: 2 },
+            symbol: 'none',
+            connectNulls: false
+        };
+    });
+
+    const leftAxisCount = Math.ceil(yAxis.length / 2);
+    const rightAxisCount = Math.floor(yAxis.length / 2);
+    const option = {
+        animation: false,
+        backgroundColor: '#1e1e1e',
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' },
+            formatter: function (params) {
+                if (!params || params.length === 0) return '';
+                const timestamp = params[0].value[0];
+                let result = `<strong>${escapeHtml(new Date(timestamp).toLocaleString())}</strong><br/>`;
+                params.forEach(param => {
+                    const rawValue = param.data?.rawValue ?? param.value[1];
+                    const unit = param.data?.unit ? ` ${escapeHtml(param.data.unit)}` : '';
+                    result += `${param.marker} ${escapeHtml(param.seriesName)}: <strong>${escapeHtml(String(rawValue))}${unit}</strong><br/>`;
+                });
+                return result;
+            }
+        },
+        legend: {
+            type: 'scroll',
+            top: 10
+        },
+        grid: {
+            left: `${Math.max(3, 3 + (leftAxisCount - 1) * 5)}%`,
+            right: `${Math.max(4, 4 + (rightAxisCount - 1) * 5)}%`,
+            top: 55,
+            bottom: '15%',
+            containLabel: true
+        },
+        toolbox: getCommonToolbox('series', data),
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100, filterMode: 'none' },
+            { start: 0, end: 100, filterMode: 'none' }
+        ],
+        xAxis: {
+            type: 'time',
+            axisLabel: {
+                formatter: value => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+        },
+        yAxis,
+        series: chartSeries
+    };
+
+    myChart.setOption(option, true);
+    setupImportedSeriesPointer();
+}
+
+function setupImportedSeriesPointer() {
+    myChart.off('updateAxisPointer');
+    myChart.on('updateAxisPointer', event => {
+        const timestamp = event.axesInfo?.[0]?.value;
+        if (timestamp !== undefined) {
+            cursorTimeDisplay.textContent = new Date(timestamp).toLocaleTimeString();
+        }
+    });
+    myChart.getZr().off('click');
+}
+
 function setupChartClickHandler(data) {
     let currentHoverTimestamp = null;
 
+    myChart.off('updateAxisPointer');
     myChart.on('updateAxisPointer', (event) => {
         const xAxisInfo = event.axesInfo[0];
         if (xAxisInfo) {
@@ -1218,6 +1362,9 @@ function handleImportUpload(event) {
             } else if (result.type === 'attribute') {
                 // It's a specific attribute history import
                 handleAttributeImport(result);
+            } else if (result.type === 'series') {
+                // It's a ha-better-history multi-series import
+                handleSeriesImport(result);
             }
         })
         .catch(error => {
@@ -1293,6 +1440,46 @@ function handleAttributeImport(result) {
             renderHistoryList(result.data);
         }
     }, 200);
+}
+
+function handleSeriesImport(result) {
+    if (currentImportId) {
+        axios.delete(`api/import/${currentImportId}`).catch(error => {
+            console.warn('Failed to release previous import session', error);
+        });
+    }
+
+    currentEntityId = null;
+    currentImportId = null;
+    currentHistoryData = result.data;
+
+    entitySearch.value = '';
+    entityDropdown.classList.add('d-none');
+
+    const t = window.i18n ? window.i18n.t : (key) => key;
+    selectedEntityName.textContent = `${result.filename} (${t('imported') || 'Imported'})`;
+    selectedEntityContainer.classList.remove('d-none');
+    dateRangeBtn.disabled = true;
+    refreshBtn.classList.add('d-none');
+    if (exportQuickBtn) exportQuickBtn.classList.add('d-none');
+    zipExportContainer.style.display = 'none';
+    chartPlaceholder.classList.add('d-none');
+
+    if (result.data.start && result.data.end) {
+        if (window.i18n) {
+            dateRangeDisplay.textContent = `${t('imported')}: ${window.i18n.formatDateRange(new Date(result.data.start), new Date(result.data.end))}`;
+        } else {
+            dateRangeDisplay.textContent = `${t('imported')}: ${new Date(result.data.start).toLocaleString()} - ${new Date(result.data.end).toLocaleString()}`;
+        }
+    }
+
+    currentDetailsData = null;
+    attributePath = [];
+    detailsContent.innerHTML = `<p class="text-muted">${escapeHtml(t('noAttributesAvailable') || 'No attributes available')}</p>`;
+    cursorTimeDisplay.textContent = '--:--';
+
+    myChart.hideLoading();
+    renderImportedSeriesChart(result.data);
 }
 
 function setupEventListeners() {
