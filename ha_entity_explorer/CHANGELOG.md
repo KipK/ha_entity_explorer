@@ -1,4 +1,10 @@
 # Changelog
+
+## 1.2.1
+- Fix Home Assistant history requests so full exports include attribute-only changes.
+- Add an export option to include only significant changes.
+- Send presence-based history options only when enabled.
+
 ## 1.2.0
 - Add import support for `ha-better-history` JSON exports, including multi-entity series.
 - fix moderate security vulnerability with flask redirect.
@@ -8,7 +14,7 @@
 - fix export only data from selected timeframe
 
 ## 1.1.3
-- remove  "minimal_response" and "significant_changes_only" from API call. 
+- remove  "minimal_response" and "significant_changes_only" from API call.
 
 ## 1.1.2
 - fix: force browser cache invalidation on update

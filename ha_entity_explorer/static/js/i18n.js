@@ -54,6 +54,7 @@ const translations = {
         // Export
         exportData: "Exporter les données",
         exportAsZip: "Exporter en .zip",
+        significantChangesOnly: "Changements significatifs uniquement",
         imported: "Importé",
         importFailed: "Échec de l'import",
 
@@ -113,6 +114,7 @@ const translations = {
         // Export
         exportData: "Export Data",
         exportAsZip: "Export as .zip",
+        significantChangesOnly: "Significant changes only",
         imported: "Imported",
         importFailed: "Import failed",
 

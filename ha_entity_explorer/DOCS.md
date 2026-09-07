@@ -19,7 +19,7 @@ This document contains detailed information for running **HA Entity Explorer** a
 ## Data Export & Import
 
 ### Export
-You can export entity history or specific attribute history by clicking the export button in the chart toolbox. Data is exported as a ZIP file containing a JSON file by default. You can also choose to export as plain JSON by modifying the URL parameter `zip=false`.
+You can export entity history or specific attribute history by clicking the export button in the chart toolbox. Data is exported as a ZIP file containing a JSON file by default. Uncheck **Significant changes only** to include attribute-only updates even when the entity state is unchanged (this is the default). Check it for a smaller export limited to significant state changes. You can also choose to export as plain JSON with the **Export as .zip** checkbox.
 
 ### Import
 Click the upload button (⬆️) in the navigation bar to import previously exported data. The application accepts both:

@@ -669,6 +669,7 @@ def export_entity_history(entity_id: str):
     start: ISO datetime string
     end: ISO datetime string
     zip: If 'true', returns a ZIP file containing the JSON
+    significant_changes_only: If 'true', omit attribute-only changes
     """
     # Security check
     validate_entity_access(entity_id)
@@ -676,6 +677,9 @@ def export_entity_history(entity_id: str):
     start_str = request.args.get('start')
     end_str = request.args.get('end')
     as_zip = request.args.get('zip', 'true').lower() == 'true'
+    significant_changes_only = request.args.get(
+        'significant_changes_only', 'false'
+    ).lower() == 'true'
 
     try:
         # Determine time range
@@ -691,7 +695,8 @@ def export_entity_history(entity_id: str):
             entity_id,
             start_time=start_time,
             end_time=end_time,
-            minimal_response=False
+            minimal_response=False,
+            significant_changes_only=significant_changes_only
         )
 
         # Add normalized timestamp field for consistency with attribute export
@@ -748,6 +753,7 @@ def export_attribute_history(entity_id: str):
     start: ISO datetime string
     end: ISO datetime string
     zip: If 'true', returns a ZIP file containing the JSON
+    significant_changes_only: If 'true', omit attribute-only changes
     """
     # Security check
     validate_entity_access(entity_id)
@@ -759,6 +765,9 @@ def export_attribute_history(entity_id: str):
     start_str = request.args.get('start')
     end_str = request.args.get('end')
     as_zip = request.args.get('zip', 'true').lower() == 'true'
+    significant_changes_only = request.args.get(
+        'significant_changes_only', 'false'
+    ).lower() == 'true'
 
     try:
         # Determine time range
@@ -774,7 +783,8 @@ def export_attribute_history(entity_id: str):
             entity_id,
             start_time=start_time,
             end_time=end_time,
-            minimal_response=False
+            minimal_response=False,
+            significant_changes_only=significant_changes_only
         )
 
         export_data = []

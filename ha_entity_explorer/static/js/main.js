@@ -33,6 +33,8 @@ const detailsContent = document.getElementById('details-content');
 const cursorTimeDisplay = document.getElementById('cursor-time');
 const zipExportContainer = document.getElementById('zip-export-container');
 const zipExportCheckbox = document.getElementById('zip-export-checkbox');
+const significantChangesContainer = document.getElementById('significant-changes-container');
+const significantChangesCheckbox = document.getElementById('significant-changes-checkbox');
 const exportQuickBtn = document.getElementById('export-quick-btn');
 const focusBtn = document.getElementById('focus-btn');
 
@@ -361,6 +363,7 @@ function selectEntity(entityId) {
     refreshBtn.classList.remove('d-none');
     if (exportQuickBtn) exportQuickBtn.classList.remove('d-none');
     zipExportContainer.style.display = 'block';
+    significantChangesContainer.style.display = 'block';
 
     // Reset attributes panel - will be populated when user clicks on chart
     currentDetailsData = null;
@@ -391,6 +394,7 @@ function clearSelectedEntity() {
     refreshBtn.classList.add('d-none');
     if (exportQuickBtn) exportQuickBtn.classList.add('d-none');
     zipExportContainer.style.display = 'none';
+    significantChangesContainer.style.display = 'none';
     dateRangeDisplay.textContent = '';
 
     // Clear chart
@@ -1242,7 +1246,8 @@ function exportData(type, entityId, start, end, key = null, asZip = true) {
     const params = new URLSearchParams({
         start: start.toISOString(),
         end: end.toISOString(),
-        zip: asZip ? 'true' : 'false'
+        zip: asZip ? 'true' : 'false',
+        significant_changes_only: significantChangesCheckbox?.checked ? 'true' : 'false'
     });
 
     if (type === 'entity') {
@@ -1399,6 +1404,7 @@ function handleEntityImport(result) {
     dateRangeBtn.disabled = true;
     refreshBtn.classList.add('d-none');
     zipExportContainer.style.display = 'block';
+    significantChangesContainer.style.display = 'none';
 
     if (result.data.start && result.data.end) {
         if (window.i18n) {
@@ -1463,6 +1469,7 @@ function handleSeriesImport(result) {
     refreshBtn.classList.add('d-none');
     if (exportQuickBtn) exportQuickBtn.classList.add('d-none');
     zipExportContainer.style.display = 'none';
+    significantChangesContainer.style.display = 'none';
     chartPlaceholder.classList.add('d-none');
 
     if (result.data.start && result.data.end) {

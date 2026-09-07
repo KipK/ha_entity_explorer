@@ -151,7 +151,8 @@ class HomeAssistantAPI:
         start_time: datetime,
         end_time: Optional[datetime] = None,
         minimal_response: bool = True,
-        significant_changes_only: bool = False
+        significant_changes_only: bool = False,
+        no_attributes: bool = False
     ) -> List[Dict]:
         """
         Get history for an entity over a time period.
@@ -160,8 +161,9 @@ class HomeAssistantAPI:
             entity_id: Entity ID to get history for
             start_time: Start of the time period
             end_time: End of the time period (defaults to now)
-            minimal_response: If True, only return last_changed, state, attributes
+            minimal_response: If True, request Home Assistant's reduced history representation
             significant_changes_only: If True, skip entries with only attribute changes
+            no_attributes: If True, omit attributes from the response
             
         Returns:
             List of state history entries for the entity
@@ -179,8 +181,16 @@ class HomeAssistantAPI:
         # Build query parameters
         params = {
             "filter_entity_id": entity_id,
-            "end_time": end_str
+            "end_time": end_str,
+            "significant_changes_only": "1" if significant_changes_only else "0"
         }
+
+        # Home Assistant enables these options based on their presence in the
+        # query string, so they must be omitted entirely when disabled.
+        if minimal_response:
+            params["minimal_response"] = "1"
+        if no_attributes:
+            params["no_attributes"] = "1"
         
         result = self._request("GET", endpoint, params=params)
         
